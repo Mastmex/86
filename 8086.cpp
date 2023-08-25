@@ -387,17 +387,229 @@ void cp8086::mov(BYTE com)
                 return;
             }
         }
-        
-        // REG_SIZE operand;
-        // REAL_ADDR_SIZE operand_addr;
-        // switch (scnd&0XC7)
-        // {
-        //     case 0X00:
-        //         operand_addr=bx+si;
-        //         o
-        //         break;
-        // default:
-        //     break;
-        // }
+        else                            //reg to mem, mem to reg
+        {   if(w==1)        
+        {
+            REG_SIZE *reg;
+            REG_SIZE addr_sum;
+            int d_mode=0;
+            switch (scnd&0XC7)
+            {
+            case 0b00000000:
+                addr_sum=bx+si;
+                ip++;
+                break;
+
+            case 0b00000001:
+                addr_sum=bx+di;
+                ip++;
+                break;
+
+            case 0b00000010:
+                addr_sum=bp+si;
+                ip++;
+                break;
+
+            case 0b00000011:
+                addr_sum=bp+di;
+                ip++;
+                break;
+
+            case 0b00000100:
+                addr_sum=si;
+                ip++;
+                break;
+
+            case 0b00000101:
+                addr_sum=di;
+                ip++;
+                break;
+
+            case 0b00000110:
+                REG_SIZE l=memory[real_addr+3];
+                l=l<<8;
+                l&0XFF00;
+                l|memory[real_addr+2];
+                addr_sum=l;
+                d_mode=2;
+                ip+=3;
+                break;
+            
+            case 0b00000111:
+                addr_sum=bx;
+                ip++;
+                break;
+
+            case 0b01000000:
+                addr_sum=bx+si+memory[real_addr+2];
+                d_mode=1;
+                ip+=2;
+                break;
+
+            case 0b01000001:
+                addr_sum=bx+di+memory[real_addr+2];
+                d_mode=1;
+                ip+=2;
+                break;
+
+            case 0b01000010:
+                addr_sum=bp+si+memory[real_addr+2];
+                d_mode=1;
+                ip+=2;
+                break;
+
+            case 0b01000011:
+                addr_sum=bp+di+memory[real_addr+2];
+                d_mode=1;
+                ip+=2;
+                break;
+
+            case 0b01000100:
+                addr_sum=si+memory[real_addr+2];
+                d_mode=1;
+                ip+=2;
+                break;
+            
+            case 0b01000101:
+                addr_sum=di+memory[real_addr+2];
+                d_mode=1;
+                ip+=2;
+                break;
+            
+            case 0b01000110:
+                addr_sum=bp+memory[real_addr+2];
+                d_mode=1;
+                ip+=2;
+                break;
+
+            case 0b01000111:
+                addr_sum=bx+memory[real_addr+2];
+                d_mode=1;
+                ip+=2;
+                break;
+
+            case 0b10000000:
+                REG_SIZE l=0;
+                l=memory[real_addr+3];
+                l=l<<8;
+                l&0XFF00;
+                l|memory[real_addr+2];
+                addr_sum=bx+si+l;
+                d_mode=1;
+                ip+=2;
+                break;
+
+            case 0b10000001:
+                REG_SIZE l=0;
+                l=memory[real_addr+3];
+                l=l<<8;
+                l&0XFF00;
+                l|memory[real_addr+2];
+                addr_sum=bx+di+l;
+                d_mode=1;
+                ip+=2;
+                break;
+
+            case 0b10000010:
+                REG_SIZE l=0;
+                l=memory[real_addr+3];
+                l=l<<8;
+                l&0XFF00;
+                l|memory[real_addr+2];
+                addr_sum=bp+si+l;
+                d_mode=1;
+                ip+=2;
+                break;
+
+            case 0b10000011:
+                REG_SIZE l=0;
+                l=memory[real_addr+3];
+                l=l<<8;
+                l&0XFF00;
+                l|memory[real_addr+2];
+                addr_sum=bp+di+l;
+                d_mode=1;
+                ip+=2;
+                break;
+
+            case 0b10000100:
+                REG_SIZE l=0;
+                l=memory[real_addr+3];
+                l=l<<8;
+                l&0XFF00;
+                l|memory[real_addr+2];
+                addr_sum=si+l;
+                d_mode=1;
+                ip+=2;
+                break;
+
+            case 0b10000101:
+                REG_SIZE l=0;
+                l=memory[real_addr+3];
+                l=l<<8;
+                l&0XFF00;
+                l|memory[real_addr+2];
+                addr_sum=di+l;
+                d_mode=1;
+                ip+=2;
+                break;
+            case 0b10000110:
+                REG_SIZE l=0;
+                l=memory[real_addr+3];
+                l=l<<8;
+                l&0XFF00;
+                l|memory[real_addr+2];
+                addr_sum=bp+l;
+                d_mode=1;
+                ip+=2;
+                break;
+            case 0b10000111:
+                REG_SIZE l=0;
+                l=memory[real_addr+3];
+                l=l<<8;
+                l&0XFF00;
+                l|memory[real_addr+2];
+                addr_sum=bx+l;
+                d_mode=1;
+                ip+=2;
+                break;
+            default:
+                break;
+            }
+            switch (scnd&0X38)
+                {
+                case 0b00000000:
+                    reg=&ax;
+                    break;
+                
+                case 0b00001000:
+                    reg=&cx;
+                    break;
+
+                case 0b00010000:
+                    reg=&dx;
+                    break;
+
+                case 0b00011000:
+                    reg=&bx;
+                    break;
+
+                case 0b00100000:
+                    reg=&sp;
+                    break;
+
+                case 0b00101000:
+                    reg=&bp;
+                    break;
+
+                case 0b00110000:
+                    reg=&si;
+                    break;
+
+                case 0b00111000:
+                    reg=&di;
+                    break;
+                }
+        }
     }
 }
