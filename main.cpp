@@ -5,7 +5,7 @@ int main(){
     std::cout<<sizeof(int)<<"\n";
     cp8086 a;
     a.init();
-    a.load_mem("/home/gordeev_m/progs/86/mem.mem");
+    a.load_mem("../mem.mem");
     if(!a.set_initial_addr(0X00000))
         std::cout<<"Error in address!\n";
         auto x=a.run();

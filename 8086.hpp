@@ -17,6 +17,7 @@ private:
     void flagDF(int s);
     void flagIF(int s);
     void printFlags();
+    void printRegs();
     void mov(BYTE com);
 public:
     void init();
