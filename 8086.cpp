@@ -55,7 +55,7 @@ void cp8086::load_mem(std::string name)
     for (int i = 0;; i++)
     {
         mem.getline(buf, 9);
-        //std::cout<<buf<<'\n';
+        // std::cout<<buf<<'\n';
         int tmp;
         tmp = 0;
         for (int c = 0; c < 8; c++)
@@ -82,7 +82,8 @@ void cp8086::printRegs()
             AX:%04X\tSP:%04X\n\
             BX:%04X\tBP:%04X\n\
             CX:%04X\tSI:%04X\n\
-            DX:%04X\tDI:%04X\n",ax,sp,bx,bp,cx,si,dx,di);
+            DX:%04X\tDI:%04X\n",
+           ax, sp, bx, bp, cx, si, dx, di);
 }
 
 int cp8086::run()
@@ -144,7 +145,7 @@ int cp8086::run()
             break;
         case 0b10001001:
             PRINT_COM(real_addr, "MOV");
-            std::cout<<(int)memory[real_addr]<<'\n';
+            std::cout << (int)memory[real_addr] << '\n';
             mov(memory[real_addr]);
             break;
         case 0b10001010:
@@ -166,9 +167,9 @@ int cp8086::run()
         }
         ip = ip + 1;
         convert_cs_ip_to_real();
-        //printFlags();
+        // printFlags();
         printRegs();
-        printf("%04X:%04X\n",cs,ip);
+        printf("%04X:%04X\n", cs, ip);
     }
 }
 
@@ -208,7 +209,7 @@ void cp8086::mov(BYTE com)
     {
         BYTE w = com & 0X01;
         BYTE scnd = memory[real_addr + 1];
-        if ((scnd & 0XC0) == 0XC0)    // reg to reg
+        if ((scnd & 0XC0) == 0XC0) // reg to reg
         {
             ip++;
             if (w == 1)
@@ -419,7 +420,7 @@ void cp8086::mov(BYTE com)
                 return;
             }
         }
-        else                        // reg to mem, mem to reg
+        else // reg to mem, mem to reg
         {
             REG_SIZE *reg;
             REG_SIZE addr_sum;
@@ -624,129 +625,129 @@ void cp8086::mov(BYTE com)
             break;
             default:
                 break;
-                if (w == 1)
+            }
+            if (w == 1)
+            {
+                switch ((scnd & 0X38))
                 {
-                    switch ((scnd & 0X38))
-                    {
-                    case 0b00000000:
-                        reg = &ax;
-                        break;
+                case 0b00000000:
+                    reg = &ax;
+                    break;
 
-                    case 0b00001000:
-                        reg = &cx;
-                        break;
+                case 0b00001000:
+                    reg = &cx;
+                    break;
 
-                    case 0b00010000:
-                        reg = &dx;
-                        break;
+                case 0b00010000:
+                    reg = &dx;
+                    break;
 
-                    case 0b00011000:
-                        reg = &bx;
-                        break;
+                case 0b00011000:
+                    reg = &bx;
+                    break;
 
-                    case 0b00100000:
-                        reg = &sp;
-                        break;
+                case 0b00100000:
+                    reg = &sp;
+                    break;
 
-                    case 0b00101000:
-                        reg = &bp;
-                        break;
+                case 0b00101000:
+                    reg = &bp;
+                    break;
 
-                    case 0b00110000:
-                        reg = &si;
-                        break;
+                case 0b00110000:
+                    reg = &si;
+                    break;
 
-                    case 0b00111000:
-                        reg = &di;
-                        break;
-                    }
-                    if((com&0X02)==0X00)
-                    {
-                        memory[addr_sum+1]=((*reg)&0XFF00)>>8;
-                        memory[addr_sum]=(*reg)&0X00FF;
-                    }
-                    else
-                    {
-                        *reg=0;
-                        *reg=memory[addr_sum+1];
-                        *reg=*reg<<8;
-                        *reg&=0XFF00;
-                        *reg|=memory[addr_sum];
-                    }
+                case 0b00111000:
+                    reg = &di;
+                    break;
+                }
+                if ((com & 0X02) == 0X00)
+                {
+                    memory[addr_sum + 1] = ((*reg) & 0XFF00) >> 8;
+                    memory[addr_sum] = (*reg) & 0X00FF;
                 }
                 else
                 {
-                    bool h=false;
-                    switch ((scnd & 0X38))
+                    *reg = 0;
+                    *reg = memory[addr_sum + 1];
+                    *reg = *reg << 8;
+                    *reg &= 0XFF00;
+                    *reg |= memory[addr_sum];
+                }
+            }
+            else
+            {
+                bool h = false;
+                switch ((scnd & 0X38))
+                {
+                case 0b00000000:
+                    reg = &ax;
+                    h = false;
+                    break;
+
+                case 0b00001000:
+                    reg = &cx;
+                    h = false;
+                    break;
+
+                case 0b00010000:
+                    h = false;
+                    reg = &dx;
+                    break;
+
+                case 0b00011000:
+                    h = false;
+                    reg = &bx;
+                    break;
+
+                case 0b00100000:
+                    h = true;
+                    reg = &ax;
+                    break;
+
+                case 0b00101000:
+                    h = true;
+                    reg = &cx;
+                    break;
+
+                case 0b00110000:
+                    h = true;
+                    reg = &dx;
+                    break;
+
+                case 0b00111000:
+                    h = true;
+                    reg = &bx;
+                    break;
+                }
+
+                if ((com & 0X02) == 0X00)
+                {
+                    BYTE dat;
+                    if (h == false)
+                        dat = *reg & 0X00FF;
+                    else
+                        dat = ((*reg) & 0XFF00) >> 8;
+                    memory[addr_sum] = dat;
+                }
+                else
+                {
+                    if (h == false)
                     {
-                    case 0b00000000:
-                        reg = &ax;
-                        h=false;
-                        break;
-
-                    case 0b00001000:
-                        reg = &cx;
-                        h=false;
-                        break;
-
-                    case 0b00010000:
-                        h=false;
-                        reg = &dx;
-                        break;
-
-                    case 0b00011000:
-                        h=false;
-                        reg = &bx;
-                        break;
-
-                    case 0b00100000:
-                        h=true;
-                        reg = &ax;
-                        break;
-
-                    case 0b00101000:
-                        h=true;
-                        reg = &cx;
-                        break;
-
-                    case 0b00110000:
-                        h=true;
-                        reg = &dx;
-                        break;
-
-                    case 0b00111000:
-                        h=true;
-                        reg = &bx;
-                        break;
-                    }
-                    
-                    if((com&0X02)==0X00)
-                    {
-                        BYTE dat;
-                        if(h==false)
-                            dat=*reg&0X00FF;
-                        else
-                            dat=((*reg)&0XFF00)>>8;
-                        memory[addr_sum]=dat;
+                        *reg &= 0XFF00;
+                        REG_SIZE tmp = 0;
+                        tmp = memory[addr_sum];
+                        *reg |= tmp;
                     }
                     else
                     {
-                        if(h==false)
-                        {
-                            *reg&=0XFF00;
-                            REG_SIZE tmp=0;
-                            tmp=memory[addr_sum];
-                            *reg|=tmp;
-                        }
-                        else
-                        {
-                            *reg&=0X00FF;
-                            REG_SIZE tmp=0;
-                            tmp=memory[addr_sum];
-                            tmp=tmp<<8;
-                            tmp&=0XFF00;
-                            *reg|=tmp;
-                        }
+                        *reg &= 0X00FF;
+                        REG_SIZE tmp = 0;
+                        tmp = memory[addr_sum];
+                        tmp = tmp << 8;
+                        tmp &= 0XFF00;
+                        *reg |= tmp;
                     }
                 }
             }
