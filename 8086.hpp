@@ -13,6 +13,7 @@ private:
     REG_SIZE flags;
     REAL_ADDR_SIZE real_addr;
     void convert_cs_ip_to_real();
+    REAL_ADDR_SIZE local_convert_cs_ip_to_real(REG_SIZE c,REG_SIZE i);
     void flagCF(int s);
     void flagDF(int s);
     void flagIF(int s);

@@ -47,6 +47,14 @@ void cp8086::convert_cs_ip_to_real()
     if (real_addr > 0XFFFFF)
         real_addr &= 0X0FFFFF;
 }
+REAL_ADDR_SIZE cp8086::local_convert_cs_ip_to_real(REG_SIZE c, REG_SIZE i)
+{
+    REAL_ADDR_SIZE r;
+    r = c * 16 + i;
+    if (r > 0XFFFFF)
+        r &= 0X0FFFFF;
+    return r;
+}
 
 void cp8086::load_mem(std::string name)
 {
@@ -153,6 +161,14 @@ int cp8086::run()
             mov(memory[real_addr]);
             break;
         case 0b10001011:
+            PRINT_COM(real_addr, "MOV");
+            mov(memory[real_addr]);
+            break;
+        case 0b11000110:
+            PRINT_COM(real_addr, "MOV");
+            mov(memory[real_addr]);
+            break;
+        case 0b11000111:
             PRINT_COM(real_addr, "MOV");
             mov(memory[real_addr]);
             break;
@@ -424,7 +440,6 @@ void cp8086::mov(BYTE com)
         {
             REG_SIZE *reg;
             REG_SIZE addr_sum;
-            int d_mode = 0;
             switch ((scnd & 0XC7))
             {
             case 0b00000000:
@@ -462,9 +477,8 @@ void cp8086::mov(BYTE com)
                 REG_SIZE l = memory[real_addr + 3];
                 l = l << 8;
                 l & 0XFF00;
-                l | memory[real_addr + 2];
+                l= l | memory[real_addr + 2];
                 addr_sum = l;
-                d_mode = 2;
                 ip += 3;
                 break;
             }
@@ -476,49 +490,41 @@ void cp8086::mov(BYTE com)
 
             case 0b01000000:
                 addr_sum = bx + si + memory[real_addr + 2];
-                d_mode = 1;
                 ip += 2;
                 break;
 
             case 0b01000001:
                 addr_sum = bx + di + memory[real_addr + 2];
-                d_mode = 1;
                 ip += 2;
                 break;
 
             case 0b01000010:
                 addr_sum = bp + si + memory[real_addr + 2];
-                d_mode = 1;
                 ip += 2;
                 break;
 
             case 0b01000011:
                 addr_sum = bp + di + memory[real_addr + 2];
-                d_mode = 1;
                 ip += 2;
                 break;
 
             case 0b01000100:
                 addr_sum = si + memory[real_addr + 2];
-                d_mode = 1;
                 ip += 2;
                 break;
 
             case 0b01000101:
                 addr_sum = di + memory[real_addr + 2];
-                d_mode = 1;
                 ip += 2;
                 break;
 
             case 0b01000110:
                 addr_sum = bp + memory[real_addr + 2];
-                d_mode = 1;
                 ip += 2;
                 break;
 
             case 0b01000111:
                 addr_sum = bx + memory[real_addr + 2];
-                d_mode = 1;
                 ip += 2;
                 break;
 
@@ -528,9 +534,8 @@ void cp8086::mov(BYTE com)
                 l = memory[real_addr + 3];
                 l = l << 8;
                 l & 0XFF00;
-                l | memory[real_addr + 2];
+                l= l | memory[real_addr + 2];
                 addr_sum = bx + si + l;
-                d_mode = 1;
                 ip += 2;
             }
             break;
@@ -541,9 +546,8 @@ void cp8086::mov(BYTE com)
                 l = memory[real_addr + 3];
                 l = l << 8;
                 l & 0XFF00;
-                l | memory[real_addr + 2];
+                l= l | memory[real_addr + 2];
                 addr_sum = bx + di + l;
-                d_mode = 1;
                 ip += 2;
             }
             break;
@@ -554,9 +558,8 @@ void cp8086::mov(BYTE com)
                 l = memory[real_addr + 3];
                 l = l << 8;
                 l & 0XFF00;
-                l | memory[real_addr + 2];
+                l= l | memory[real_addr + 2];
                 addr_sum = bp + si + l;
-                d_mode = 1;
                 ip += 2;
             }
             break;
@@ -567,9 +570,8 @@ void cp8086::mov(BYTE com)
                 l = memory[real_addr + 3];
                 l = l << 8;
                 l & 0XFF00;
-                l | memory[real_addr + 2];
+                l= l | memory[real_addr + 2];
                 addr_sum = bp + di + l;
-                d_mode = 1;
                 ip += 2;
             }
             break;
@@ -580,9 +582,8 @@ void cp8086::mov(BYTE com)
                 l = memory[real_addr + 3];
                 l = l << 8;
                 l & 0XFF00;
-                l | memory[real_addr + 2];
+                l= l | memory[real_addr + 2];
                 addr_sum = si + l;
-                d_mode = 1;
                 ip += 2;
             }
             break;
@@ -593,9 +594,8 @@ void cp8086::mov(BYTE com)
                 l = memory[real_addr + 3];
                 l = l << 8;
                 l & 0XFF00;
-                l | memory[real_addr + 2];
+                l= l | memory[real_addr + 2];
                 addr_sum = di + l;
-                d_mode = 1;
                 ip += 2;
             }
             break;
@@ -605,9 +605,8 @@ void cp8086::mov(BYTE com)
                 l = memory[real_addr + 3];
                 l = l << 8;
                 l & 0XFF00;
-                l | memory[real_addr + 2];
+                l= l | memory[real_addr + 2];
                 addr_sum = bp + l;
-                d_mode = 1;
                 ip += 2;
             }
             break;
@@ -617,9 +616,8 @@ void cp8086::mov(BYTE com)
                 l = memory[real_addr + 3];
                 l = l << 8;
                 l & 0XFF00;
-                l | memory[real_addr + 2];
+                l= l | memory[real_addr + 2];
                 addr_sum = bx + l;
-                d_mode = 1;
                 ip += 2;
             }
             break;
@@ -664,16 +662,16 @@ void cp8086::mov(BYTE com)
                 }
                 if ((com & 0X02) == 0X00)
                 {
-                    memory[addr_sum + 1] = ((*reg) & 0XFF00) >> 8;
-                    memory[addr_sum] = (*reg) & 0X00FF;
+                    memory[local_convert_cs_ip_to_real(cs, addr_sum) + 1] = ((*reg) & 0XFF00) >> 8;
+                    memory[local_convert_cs_ip_to_real(cs, addr_sum)] = (*reg) & 0X00FF;
                 }
                 else
                 {
                     *reg = 0;
-                    *reg = memory[addr_sum + 1];
+                    *reg = memory[local_convert_cs_ip_to_real(cs, addr_sum) + 1];
                     *reg = *reg << 8;
                     *reg &= 0XFF00;
-                    *reg |= memory[addr_sum];
+                    *reg |= memory[local_convert_cs_ip_to_real(cs, addr_sum)];
                 }
             }
             else
@@ -729,7 +727,7 @@ void cp8086::mov(BYTE com)
                         dat = *reg & 0X00FF;
                     else
                         dat = ((*reg) & 0XFF00) >> 8;
-                    memory[addr_sum] = dat;
+                    memory[local_convert_cs_ip_to_real(cs, addr_sum)] = dat;
                 }
                 else
                 {
@@ -737,20 +735,227 @@ void cp8086::mov(BYTE com)
                     {
                         *reg &= 0XFF00;
                         REG_SIZE tmp = 0;
-                        tmp = memory[addr_sum];
+                        tmp = memory[local_convert_cs_ip_to_real(cs, addr_sum)];
                         *reg |= tmp;
                     }
                     else
                     {
                         *reg &= 0X00FF;
                         REG_SIZE tmp = 0;
-                        tmp = memory[addr_sum];
+                        tmp = memory[local_convert_cs_ip_to_real(cs, addr_sum)];
                         tmp = tmp << 8;
                         tmp &= 0XFF00;
                         *reg |= tmp;
                     }
                 }
             }
+        }
+    }
+
+    if ((com & 0XFE) == 0b11000110) // data to mem
+    {
+        BYTE w = com & 0X01;
+        BYTE scnd = memory[real_addr + 1];
+        REG_SIZE addr_sum;
+        switch ((scnd & 0XC7))
+        {
+        case 0b00000000:
+            addr_sum = bx + si;
+            ip++;
+            break;
+
+        case 0b00000001:
+            addr_sum = bx + di;
+            ip++;
+            break;
+
+        case 0b00000010:
+            addr_sum = bp + si;
+            ip++;
+            break;
+
+        case 0b00000011:
+            addr_sum = bp + di;
+            ip++;
+            break;
+
+        case 0b00000100:
+            addr_sum = si;
+            ip++;
+            break;
+
+        case 0b00000101:
+            addr_sum = di;
+            ip++;
+            break;
+
+        case 0b00000110:
+        {
+            REG_SIZE l = memory[real_addr + 3];
+            l = l << 8;
+            l & 0XFF00;
+            l = l | memory[real_addr + 2];
+            printf("%04X\n",l);
+            addr_sum = l;
+            ip += 3;
+            break;
+        }
+
+        case 0b00000111:
+            addr_sum = bx;
+            ip++;
+            break;
+
+        case 0b01000000:
+            addr_sum = bx + si + memory[real_addr + 2];
+            ip += 2;
+            break;
+
+        case 0b01000001:
+            addr_sum = bx + di + memory[real_addr + 2];
+            ip += 2;
+            break;
+
+        case 0b01000010:
+            addr_sum = bp + si + memory[real_addr + 2];
+            ip += 2;
+            break;
+
+        case 0b01000011:
+            addr_sum = bp + di + memory[real_addr + 2];
+            ip += 2;
+            break;
+
+        case 0b01000100:
+            addr_sum = si + memory[real_addr + 2];
+            ip += 2;
+            break;
+
+        case 0b01000101:
+            addr_sum = di + memory[real_addr + 2];
+            ip += 2;
+            break;
+
+        case 0b01000110:
+            addr_sum = bp + memory[real_addr + 2];
+            ip += 2;
+            break;
+
+        case 0b01000111:
+            addr_sum = bx + memory[real_addr + 2];
+            ip += 2;
+            break;
+
+        case 0b10000000:
+        {
+            REG_SIZE l = 0;
+            l = memory[real_addr + 3];
+            l = l << 8;
+            l & 0XFF00;
+            l= l | memory[real_addr + 2];
+            addr_sum = bx + si + l;
+            ip += 2;
+        }
+        break;
+
+        case 0b10000001:
+        {
+            REG_SIZE l = 0;
+            l = memory[real_addr + 3];
+            l = l << 8;
+            l & 0XFF00;
+            l= l | memory[real_addr + 2];
+            addr_sum = bx + di + l;
+            ip += 2;
+        }
+        break;
+
+        case 0b10000010:
+        {
+            REG_SIZE l = 0;
+            l = memory[real_addr + 3];
+            l = l << 8;
+            l & 0XFF00;
+            l= l | memory[real_addr + 2];
+            addr_sum = bp + si + l;
+            ip += 2;
+        }
+        break;
+
+        case 0b10000011:
+        {
+            REG_SIZE l = 0;
+            l = memory[real_addr + 3];
+            l = l << 8;
+            l & 0XFF00;
+            l= l | memory[real_addr + 2];
+            addr_sum = bp + di + l;
+            ip += 2;
+        }
+        break;
+
+        case 0b10000100:
+        {
+            REG_SIZE l = 0;
+            l = memory[real_addr + 3];
+            l = l << 8;
+            l & 0XFF00;
+            l= l | memory[real_addr + 2];
+            addr_sum = si + l;
+            ip += 2;
+        }
+        break;
+
+        case 0b10000101:
+        {
+            REG_SIZE l = 0;
+            l = memory[real_addr + 3];
+            l = l << 8;
+            l & 0XFF00;
+            l= l | memory[real_addr + 2];
+            addr_sum = di + l;
+            ip += 2;
+        }
+        break;
+        case 0b10000110:
+        {
+            REG_SIZE l = 0;
+            l = memory[real_addr + 3];
+            l = l << 8;
+            l & 0XFF00;
+            l= l | memory[real_addr + 2];
+            addr_sum = bp + l;
+            ip += 2;
+        }
+        break;
+        case 0b10000111:
+        {
+            REG_SIZE l = 0;
+            l = memory[real_addr + 3];
+            l = l << 8;
+            l & 0XFF00;
+            l= l | memory[real_addr + 2];
+            addr_sum = bx + l;
+            ip += 2;
+        }
+        break;
+        default:
+            break;
+        }
+        if (w == 0)
+        {
+            printf("%d\t%d\n",local_convert_cs_ip_to_real(cs, ip)+1,local_convert_cs_ip_to_real(cs, addr_sum));
+            memory[local_convert_cs_ip_to_real(cs, addr_sum)] = memory[local_convert_cs_ip_to_real(cs, ip) + 1];
+            ip++;
+            return;
+        }
+        else
+        {
+            memory[local_convert_cs_ip_to_real(cs, addr_sum) + 1] = memory[local_convert_cs_ip_to_real(cs, ip) + 2];
+            memory[local_convert_cs_ip_to_real(cs, addr_sum)] = memory[local_convert_cs_ip_to_real(cs, ip) + 1];
+            ip++;
+            ip++;
+            return;
         }
     }
 }
