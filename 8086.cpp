@@ -146,32 +146,96 @@ int cp8086::run()
             PRINT_COM(real_addr, "CLI");
             flagIF(0);
             break;
-
-        case 0b10001000:
-            PRINT_COM(real_addr, "MOV");
-            mov(memory[real_addr]);
-            break;
-        case 0b10001001:
-            PRINT_COM(real_addr, "MOV");
-            std::cout << (int)memory[real_addr] << '\n';
-            mov(memory[real_addr]);
-            break;
-        case 0b10001010:
-            PRINT_COM(real_addr, "MOV");
-            mov(memory[real_addr]);
-            break;
-        case 0b10001011:
-            PRINT_COM(real_addr, "MOV");
-            mov(memory[real_addr]);
-            break;
-        case 0b11000110:
-            PRINT_COM(real_addr, "MOV");
-            mov(memory[real_addr]);
-            break;
-        case 0b11000111:
-            PRINT_COM(real_addr, "MOV");
-            mov(memory[real_addr]);
-            break;
+            { // MOV commands
+            case 0b10001000:
+                PRINT_COM(real_addr, "MOV");
+                mov(memory[real_addr]);
+                break;
+            case 0b10001001:
+                PRINT_COM(real_addr, "MOV");
+                mov(memory[real_addr]);
+                break;
+            case 0b10001010:
+                PRINT_COM(real_addr, "MOV");
+                mov(memory[real_addr]);
+                break;
+            case 0b10001011:
+                PRINT_COM(real_addr, "MOV");
+                mov(memory[real_addr]);
+                break;
+            case 0b11000110:
+                PRINT_COM(real_addr, "MOV");
+                mov(memory[real_addr]);
+                break;
+            case 0b11000111:
+                PRINT_COM(real_addr, "MOV");
+                mov(memory[real_addr]);
+                break;
+            case 0b10110000:
+                PRINT_COM(real_addr, "MOV");
+                mov(memory[real_addr]);
+                break;
+            case 0b10110001:
+                PRINT_COM(real_addr, "MOV");
+                mov(memory[real_addr]);
+                break;
+            case 0b10110010:
+                PRINT_COM(real_addr, "MOV");
+                mov(memory[real_addr]);
+                break;
+            case 0b10110011:
+                PRINT_COM(real_addr, "MOV");
+                mov(memory[real_addr]);
+                break;
+            case 0b10110100:
+                PRINT_COM(real_addr, "MOV");
+                mov(memory[real_addr]);
+                break;
+            case 0b10110101:
+                PRINT_COM(real_addr, "MOV");
+                mov(memory[real_addr]);
+                break;
+            case 0b10110110:
+                PRINT_COM(real_addr, "MOV");
+                mov(memory[real_addr]);
+                break;
+            case 0b10110111:
+                PRINT_COM(real_addr, "MOV");
+                mov(memory[real_addr]);
+                break;
+            case 0b10111000:
+                PRINT_COM(real_addr, "MOV");
+                mov(memory[real_addr]);
+                break;
+            case 0b10111001:
+                PRINT_COM(real_addr, "MOV");
+                mov(memory[real_addr]);
+                break;
+            case 0b10111010:
+                PRINT_COM(real_addr, "MOV");
+                mov(memory[real_addr]);
+                break;
+            case 0b10111011:
+                PRINT_COM(real_addr, "MOV");
+                mov(memory[real_addr]);
+                break;
+            case 0b10111100:
+                PRINT_COM(real_addr, "MOV");
+                mov(memory[real_addr]);
+                break;
+            case 0b10111101:
+                PRINT_COM(real_addr, "MOV");
+                mov(memory[real_addr]);
+                break;
+            case 0b10111110:
+                PRINT_COM(real_addr, "MOV");
+                mov(memory[real_addr]);
+                break;
+            case 0b10111111:
+                PRINT_COM(real_addr, "MOV");
+                mov(memory[real_addr]);
+                break;
+            }
 
         default:
             break;
@@ -477,7 +541,7 @@ void cp8086::mov(BYTE com)
                 REG_SIZE l = memory[real_addr + 3];
                 l = l << 8;
                 l & 0XFF00;
-                l= l | memory[real_addr + 2];
+                l = l | memory[real_addr + 2];
                 addr_sum = l;
                 ip += 3;
                 break;
@@ -534,7 +598,7 @@ void cp8086::mov(BYTE com)
                 l = memory[real_addr + 3];
                 l = l << 8;
                 l & 0XFF00;
-                l= l | memory[real_addr + 2];
+                l = l | memory[real_addr + 2];
                 addr_sum = bx + si + l;
                 ip += 2;
             }
@@ -546,7 +610,7 @@ void cp8086::mov(BYTE com)
                 l = memory[real_addr + 3];
                 l = l << 8;
                 l & 0XFF00;
-                l= l | memory[real_addr + 2];
+                l = l | memory[real_addr + 2];
                 addr_sum = bx + di + l;
                 ip += 2;
             }
@@ -558,7 +622,7 @@ void cp8086::mov(BYTE com)
                 l = memory[real_addr + 3];
                 l = l << 8;
                 l & 0XFF00;
-                l= l | memory[real_addr + 2];
+                l = l | memory[real_addr + 2];
                 addr_sum = bp + si + l;
                 ip += 2;
             }
@@ -570,7 +634,7 @@ void cp8086::mov(BYTE com)
                 l = memory[real_addr + 3];
                 l = l << 8;
                 l & 0XFF00;
-                l= l | memory[real_addr + 2];
+                l = l | memory[real_addr + 2];
                 addr_sum = bp + di + l;
                 ip += 2;
             }
@@ -582,7 +646,7 @@ void cp8086::mov(BYTE com)
                 l = memory[real_addr + 3];
                 l = l << 8;
                 l & 0XFF00;
-                l= l | memory[real_addr + 2];
+                l = l | memory[real_addr + 2];
                 addr_sum = si + l;
                 ip += 2;
             }
@@ -594,7 +658,7 @@ void cp8086::mov(BYTE com)
                 l = memory[real_addr + 3];
                 l = l << 8;
                 l & 0XFF00;
-                l= l | memory[real_addr + 2];
+                l = l | memory[real_addr + 2];
                 addr_sum = di + l;
                 ip += 2;
             }
@@ -605,7 +669,7 @@ void cp8086::mov(BYTE com)
                 l = memory[real_addr + 3];
                 l = l << 8;
                 l & 0XFF00;
-                l= l | memory[real_addr + 2];
+                l = l | memory[real_addr + 2];
                 addr_sum = bp + l;
                 ip += 2;
             }
@@ -616,7 +680,7 @@ void cp8086::mov(BYTE com)
                 l = memory[real_addr + 3];
                 l = l << 8;
                 l & 0XFF00;
-                l= l | memory[real_addr + 2];
+                l = l | memory[real_addr + 2];
                 addr_sum = bx + l;
                 ip += 2;
             }
@@ -795,7 +859,6 @@ void cp8086::mov(BYTE com)
             l = l << 8;
             l & 0XFF00;
             l = l | memory[real_addr + 2];
-            printf("%04X\n",l);
             addr_sum = l;
             ip += 3;
             break;
@@ -852,7 +915,7 @@ void cp8086::mov(BYTE com)
             l = memory[real_addr + 3];
             l = l << 8;
             l & 0XFF00;
-            l= l | memory[real_addr + 2];
+            l = l | memory[real_addr + 2];
             addr_sum = bx + si + l;
             ip += 2;
         }
@@ -864,7 +927,7 @@ void cp8086::mov(BYTE com)
             l = memory[real_addr + 3];
             l = l << 8;
             l & 0XFF00;
-            l= l | memory[real_addr + 2];
+            l = l | memory[real_addr + 2];
             addr_sum = bx + di + l;
             ip += 2;
         }
@@ -876,7 +939,7 @@ void cp8086::mov(BYTE com)
             l = memory[real_addr + 3];
             l = l << 8;
             l & 0XFF00;
-            l= l | memory[real_addr + 2];
+            l = l | memory[real_addr + 2];
             addr_sum = bp + si + l;
             ip += 2;
         }
@@ -888,7 +951,7 @@ void cp8086::mov(BYTE com)
             l = memory[real_addr + 3];
             l = l << 8;
             l & 0XFF00;
-            l= l | memory[real_addr + 2];
+            l = l | memory[real_addr + 2];
             addr_sum = bp + di + l;
             ip += 2;
         }
@@ -900,7 +963,7 @@ void cp8086::mov(BYTE com)
             l = memory[real_addr + 3];
             l = l << 8;
             l & 0XFF00;
-            l= l | memory[real_addr + 2];
+            l = l | memory[real_addr + 2];
             addr_sum = si + l;
             ip += 2;
         }
@@ -912,7 +975,7 @@ void cp8086::mov(BYTE com)
             l = memory[real_addr + 3];
             l = l << 8;
             l & 0XFF00;
-            l= l | memory[real_addr + 2];
+            l = l | memory[real_addr + 2];
             addr_sum = di + l;
             ip += 2;
         }
@@ -923,7 +986,7 @@ void cp8086::mov(BYTE com)
             l = memory[real_addr + 3];
             l = l << 8;
             l & 0XFF00;
-            l= l | memory[real_addr + 2];
+            l = l | memory[real_addr + 2];
             addr_sum = bp + l;
             ip += 2;
         }
@@ -934,7 +997,7 @@ void cp8086::mov(BYTE com)
             l = memory[real_addr + 3];
             l = l << 8;
             l & 0XFF00;
-            l= l | memory[real_addr + 2];
+            l = l | memory[real_addr + 2];
             addr_sum = bx + l;
             ip += 2;
         }
@@ -944,7 +1007,6 @@ void cp8086::mov(BYTE com)
         }
         if (w == 0)
         {
-            printf("%d\t%d\n",local_convert_cs_ip_to_real(cs, ip)+1,local_convert_cs_ip_to_real(cs, addr_sum));
             memory[local_convert_cs_ip_to_real(cs, addr_sum)] = memory[local_convert_cs_ip_to_real(cs, ip) + 1];
             ip++;
             return;
@@ -958,4 +1020,112 @@ void cp8086::mov(BYTE com)
             return;
         }
     }
+
+    if ((com & 0XF0) == 0b10110000) // data to reg
+    {
+        BYTE w = com & 0X01;
+        if (w == 1)
+        {
+            REG_SIZE *r;
+            switch ((com & 0X0E))
+            {
+            case 0b00000000:
+                r = &ax;
+                break;
+            case 0b00000010:
+                r = &cx;
+                break;
+            case 0b00000100:
+                r = &dx;
+                break;
+            case 0b00000110:
+                r = &bx;
+                break;
+            case 0b00001000:
+                r = &sp;
+                break;
+            case 0b00001010:
+                r = &bp;
+                break;
+            case 0b00001100:
+                r = &si;
+                break;
+            case 0b00001110:
+                r = &di;
+                break;
+            default:
+                break;
+            }
+            *r = memory[real_addr + 2];
+            *r = *r << 8;
+            *r |= memory[real_addr + 1];
+            ip++;
+            ip++;
+            return;
+        }
+        else
+        {
+            REG_SIZE *r;
+            bool h = false;
+            switch ((com & 0X0E))
+            {
+            case 0b00000000:
+                h = false;
+                r = &ax;
+                break;
+            case 0b00000010:
+                h = false;
+                r = &cx;
+                break;
+            case 0b00000100:
+                h = false;
+                r = &dx;
+                break;
+            case 0b00000110:
+                h = false;
+                r = &bx;
+                break;
+            case 0b00001000:
+                h = true;
+                r = &ax;
+                break;
+            case 0b00001010:
+                h = true;
+                r = &cx;
+                break;
+            case 0b00001100:
+                h = true;
+                r = &dx;
+                break;
+            case 0b00001110:
+                h = true;
+                r = &bx;
+                break;
+            default:
+                break;
+            }
+            if (h == false)
+            {
+                REG_SIZE t = 0;
+                t = memory[real_addr + 1];
+                *r = *r & 0XFF00;
+                *r = *r | t;
+                ip++;
+                return;
+            }
+            else
+            {
+                REG_SIZE t = 0;
+                t = memory[real_addr + 1];
+                t = t << 8;
+                t = t & 0XFF00;
+                *r = *r & 0X00FF;
+                *r = *r | t;
+                ip++;
+                return;
+            }
+        }
+    }
+
+    
 }
