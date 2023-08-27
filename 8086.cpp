@@ -235,6 +235,22 @@ int cp8086::run()
                 PRINT_COM(real_addr, "MOV");
                 mov(memory[real_addr]);
                 break;
+            case 0b10100000:
+                PRINT_COM(real_addr, "MOV");
+                mov(memory[real_addr]);
+                break;
+            case 0b10100001:
+                PRINT_COM(real_addr, "MOV");
+                mov(memory[real_addr]);
+                break;
+            case 0b10100010:
+                PRINT_COM(real_addr, "MOV");
+                mov(memory[real_addr]);
+                break;
+            case 0b10100011:
+                PRINT_COM(real_addr, "MOV");
+                mov(memory[real_addr]);
+                break;
             }
 
         default:
@@ -1127,5 +1143,50 @@ void cp8086::mov(BYTE com)
         }
     }
 
-    
+    if((com&0XFC)==0b10100000)      // mem to ax, ax to mem
+    {
+        int w=com&0X01;
+        int d=com&0X02;
+        if(w==0)
+        {
+            if(d==0)
+            {
+                ax=memory[local_convert_cs_ip_to_real(cs,memory[real_addr+1])];
+                ip++;
+                return;
+            }
+            else
+            {
+                memory[local_convert_cs_ip_to_real(cs,memory[real_addr+1])]=ax&0X00FF;
+                ip++;
+                return;
+            }
+        }
+        else
+        {
+            if(d==0)
+            {
+                ax=memory[local_convert_cs_ip_to_real(cs,memory[real_addr+2])];
+                ax=ax<<8;
+                ax=ax & 0XFF00;
+                ax=ax | memory[local_convert_cs_ip_to_real(cs,memory[real_addr+1])];
+                ip++;
+                ip++;
+                return;
+            }
+            else
+            {
+                BYTE h,l;
+                l=ax&0X00FF;
+                h=(ax&0XFF00)>>8;
+                memory[local_convert_cs_ip_to_real(cs,memory[real_addr+1])]=l;
+                memory[local_convert_cs_ip_to_real(cs,memory[real_addr+2])]=h;
+                ip++;
+                ip++;
+                return;
+            }
+        }
+    }
+
+
 }
