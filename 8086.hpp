@@ -19,7 +19,10 @@ private:
     void flagIF(int s);
     void printFlags();
     void printRegs();
+    void printStack();
     void mov(BYTE com);
+    void push(BYTE com);
+    void pop(BYTE com);
 public:
     void init();
     int set_initial_addr(REAL_ADDR_SIZE initial_addr);
