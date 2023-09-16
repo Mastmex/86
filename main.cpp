@@ -9,7 +9,8 @@ int main()
     cp8086 a;
     auto start = std::chrono::system_clock::now();
     a.init();
-    a.load_mem("../mem.mem");
+    //a.load_mem("../mem.mem");
+    a.load_mem_hex("../mem.hex");
     if (!a.set_initial_addr(0X00000))
         std::cout << "Error in address!\n";
     auto x = a.run();
