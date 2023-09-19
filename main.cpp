@@ -17,7 +17,7 @@ int main()
     if (x == 0)
         std::cout << "Ended by hlt\n";
     else
-        std::cout << "Ended by error";
+        std::cout << "Ended by error\n";
     a.memory_dump();
     auto end = std::chrono::system_clock::now();
     std::chrono::duration<double> elapsed_seconds = end - start;
