@@ -31,11 +31,13 @@ private:
     void mov(BYTE com);
     void push(BYTE com);
     void pop(BYTE com);
+    void xchg(BYTE com);
 public:
     void init();
     int set_initial_addr(REAL_ADDR_SIZE initial_addr);
     void load_mem(std::string name);
     void load_mem_hex(std::string name);
+    void memory_dump();
     int run();
 };
 

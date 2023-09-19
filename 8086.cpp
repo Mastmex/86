@@ -131,6 +131,16 @@ void cp8086::load_mem(std::string name)
     mem.close();
 }
 
+void cp8086::memory_dump()
+{
+    std::ofstream mem("mem.dump",std::ios::binary | std::ios::trunc);
+    for(BYTE c: memory)
+    {
+        mem.write((char*)&c,1);
+    }
+    mem.close();
+}
+
 void cp8086::printFlags()
 {
     printf("%04X\n", flags);
@@ -431,7 +441,38 @@ int cp8086::run()
                 pop(memory[real_addr]);
                 printStack();
                 break;
+            case 0b00000111:
+                PRINT_COM(real_addr, "POP");
+                pop(memory[real_addr]);
+                printStack();
+                break;
+            case 0b00001111:
+                PRINT_COM(real_addr, "POP");
+                pop(memory[real_addr]);
+                printStack();
+                break;
+            case 0b00010111:
+                PRINT_COM(real_addr, "POP");
+                pop(memory[real_addr]);
+                printStack();
+                break;
+            case 0b00011111:
+                PRINT_COM(real_addr, "POP");
+                pop(memory[real_addr]);
+                printStack();
+                break;
             }
+            {
+            case 0b10000110:
+                PRINT_COM(real_addr, "XCHG");
+                xchg(memory[real_addr]);
+                break;
+            case 0b10000111:
+                PRINT_COM(real_addr, "XCHG");
+                xchg(memory[real_addr]);
+                break;
+            }
+            
         default:
             return 1;
             break;
@@ -1273,20 +1314,24 @@ void cp8086::mov(BYTE com)
         }
         else
         {
+            REGISTER addr_to_write;
+            addr_to_write.reg_half[0]=memory[real_addr + 1];
+            addr_to_write.reg_half[1]=memory[real_addr + 2];
             if (d == 0)
             {
-                ax.reg_half[1] = memory[local_convert_cs_ip_to_real(ds, memory[real_addr + 2])];
-                ax.reg_half[0] = memory[local_convert_cs_ip_to_real(ds, memory[real_addr + 1])];
+                ax.reg_half[1] = memory[local_convert_cs_ip_to_real(ds, addr_to_write)];
+                ax.reg_half[0] = memory[local_convert_cs_ip_to_real(ds, addr_to_write.reg+1)];
                 ip.reg += 2;
                 return;
             }
             else
             {
-                memory[local_convert_cs_ip_to_real(ds, memory[real_addr + 1])] = ax.reg_half[0];
-                memory[local_convert_cs_ip_to_real(ds, memory[real_addr + 2])] = ax.reg_half[1];
+                memory[local_convert_cs_ip_to_real(ds, addr_to_write)] = ax.reg_half[0];
+                memory[local_convert_cs_ip_to_real(ds, addr_to_write.reg+1)] = ax.reg_half[1];
                 ip.reg += 2;
                 return;
             }
+            
         }
     }
 
@@ -1644,6 +1689,7 @@ void cp8086::push(BYTE com)
 
             case 0b00000110:
             {
+
                 REG_SIZE l = memory[real_addr + 3];
                 l = l << 8;
                 l = l | memory[real_addr + 2];
@@ -2137,7 +2183,221 @@ void cp8086::pop(BYTE com)
         default:
             break;
         }
-        sp.reg -= 2;
+        sp.reg += 2;
         return;
     }
+
+    if ((com & 0XE7) == 0b00000111) // seg
+    {
+        switch (com & 0X18)
+        {
+        case 0b00000000:
+            es.reg_half[1]= memory[local_convert_cs_ip_to_real(ss, sp) + 1];
+            es.reg_half[0]= memory[local_convert_cs_ip_to_real(ss, sp)];
+            break;
+        case 0b00001000:
+            cs.reg_half[1]= memory[local_convert_cs_ip_to_real(ss, sp) + 1];
+            es.reg_half[0]= memory[local_convert_cs_ip_to_real(ss, sp)];
+            break;
+        case 0b00010000:
+        {
+            REGISTER tmp=ss;
+            ss.reg_half[1]= memory[local_convert_cs_ip_to_real(tmp, sp) + 1];
+            ss.reg_half[0]= memory[local_convert_cs_ip_to_real(tmp, sp)];
+            break;
+        }
+        case 0b00011000:
+            ds.reg_half[1]= memory[local_convert_cs_ip_to_real(ss, sp) + 1];
+            ds.reg_half[0]= memory[local_convert_cs_ip_to_real(ss, sp)];
+            break;
+        default:
+            break;
+        }
+    }
+}
+
+void cp8086::xchg(BYTE com)
+{
+    BYTE w = com & 0X01;
+    BYTE scnd=memory[real_addr+1];
+    if ((com & 0XFE) == 0b10000110) // reg/mem
+    {
+        if ((scnd & 0XC0) == 0XC0) // reg to reg
+        {
+            ip.reg++;
+            if (w == 1)
+            {
+                REGISTER *f, *s;
+                switch ((scnd & 0X38))
+                {
+                case 0b00000000:
+                    f = &ax;
+                    break;
+
+                case 0b00001000:
+                    f = &cx;
+                    break;
+
+                case 0b00010000:
+                    f = &dx;
+                    break;
+
+                case 0b00011000:
+                    f = &bx;
+                    break;
+
+                case 0b00100000:
+                    f = &sp;
+                    break;
+
+                case 0b00101000:
+                    f = &bp;
+                    break;
+
+                case 0b00110000:
+                    f = &si;
+                    break;
+
+                case 0b00111000:
+                    f = &di;
+                    break;
+                }
+                switch ((scnd & 0X07))
+                {
+                case 0b00000000:
+                    s = &ax;
+                    break;
+
+                case 0b00000001:
+                    s = &cx;
+                    break;
+
+                case 0b00000010:
+                    s = &dx;
+                    break;
+
+                case 0b00000011:
+                    s = &bx;
+                    break;
+
+                case 0b00000100:
+                    s = &sp;
+                    break;
+
+                case 0b00000101:
+                    s = &bp;
+                    break;
+
+                case 0b00000110:
+                    s = &si;
+                    break;
+
+                case 0b00000111:
+                    s = &di;
+                    break;
+                }
+                REGISTER tmp;
+                tmp.reg=f->reg;
+                f->reg=s->reg;
+                s->reg=tmp.reg;
+                return;
+            }
+            else
+            {
+                ip.reg++;
+                int h1=0,h2 = 0;
+                REGISTER *f, *s;
+                switch ((scnd & 0X38))
+                {
+                case 0b00000000:
+                    h1=0;
+                    f = &ax;
+                    break;
+
+                case 0b00001000:
+                    h1=0;
+                    f = &cx;
+                    break;
+
+                case 0b00010000:
+                    h1=0;
+                    f = &dx;
+                    break;
+
+                case 0b00011000:
+                    h1=0;
+                    f = &bx;
+                    break;
+
+                case 0b00100000:
+                    h1=1;
+                    f = &ax;
+                    break;
+
+                case 0b00101000:
+                    h1=1;
+                    f = &cx;
+                    break;
+
+                case 0b00110000:
+                    h1=1;
+                    f = &dx;
+                    break;
+
+                case 0b00111000:
+                    h1=1;
+                    f = &bx;
+                    break;
+                }
+                switch ((scnd & 0X07))
+                {
+                case 0b00000000:
+                    h2=0;
+                    s = &ax;
+                    break;
+
+                case 0b00000001:
+                    h2=0;
+                    s = &cx;
+                    break;
+
+                case 0b00000010:
+                    h2=0;
+                    s = &dx;
+                    break;
+
+                case 0b00000011:
+                    h2=0;
+                    s = &bx;
+                    break;
+
+                case 0b00000100:
+                    h2=1;
+                    s = &ax;
+                    break;
+
+                case 0b00000101:
+                    h2=1;
+                    s = &cx;
+                    break;
+
+                case 0b00000110:
+                    h2=1;
+                    s = &dx;
+                    break;
+
+                case 0b00000111:
+                    h2=1;
+                    s = &bx;
+                    break;
+                }
+                BYTE tmp;
+                tmp=f->reg_half[h1];
+                f->reg_half[h1]=s->reg_half[h2];
+                s->reg_half[h2]=tmp;
+                return;
+            }
+        }
+    }       
+
 }
