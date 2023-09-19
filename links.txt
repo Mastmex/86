@@ -5,3 +5,4 @@ https://kaf401.rloc.ru/DSP/I8086_commands.htm
 http://cisc.narod.ru/i8086/80862.htm#PTop
 https://systo.ru/prog/theor/addr-x86.html
 https://studfile.net/preview/1175582/page:8/
+http://www.club155.ru/x86exceptions-conditions#GP

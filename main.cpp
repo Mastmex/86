@@ -7,12 +7,14 @@ int main()
 {
     std::cout << sizeof(int) << "\n";
     cp8086 a;
+    int monitor;
     auto start = std::chrono::system_clock::now();
     a.init();
     //a.load_mem("../mem.mem");
     a.load_mem_hex("../mem.hex");
     if (!a.set_initial_addr(0X00000))
         std::cout << "Error in address!\n";
+    a.set_error_data(&monitor);
     auto x = a.run();
     if (x == 0)
         std::cout << "Ended by hlt\n";

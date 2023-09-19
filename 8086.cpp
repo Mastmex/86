@@ -96,12 +96,12 @@ REAL_ADDR_SIZE cp8086::local_convert_cs_ip_to_real(REG_SIZE c, REG_SIZE i)
 
 void cp8086::load_mem_hex(std::string name)
 {
-    std::ifstream mem(name,std::ios::binary);
+    std::ifstream mem(name, std::ios::binary);
     BYTE c;
     for (int i = 0;; i++)
     {
-        mem.read((char*)&c,1);
-        memory[i]=c;
+        mem.read((char *)&c, 1);
+        memory[i] = c;
         if (mem.eof())
             break;
     }
@@ -133,17 +133,17 @@ void cp8086::load_mem(std::string name)
 
 void cp8086::memory_dump()
 {
-    std::ofstream mem("mem.dump",std::ios::binary | std::ios::trunc);
-    for(BYTE c: memory)
+    std::ofstream mem("mem.dump", std::ios::binary | std::ios::trunc);
+    for (BYTE c : memory)
     {
-        mem.write((char*)&c,1);
+        mem.write((char *)&c, 1);
     }
     mem.close();
 }
 
 void cp8086::printFlags()
 {
-    printf("%04X\n", flags);
+    printf("\t\tflags -- %04X\n", flags);
 }
 
 void cp8086::printRegs()
@@ -162,6 +162,11 @@ int cp8086::run()
     // std::cout<<real_addr<<"-----"<<std::bitset<8>{memory[real_addr+1]}<<'\n';
     while (1)
     {
+        if (error == nullptr)
+        {
+            std::cout << "No error monitor set\n";
+            return 1;
+        }
 
         if (memory[real_addr] == 0b11110100)
         { /// HLT
@@ -500,7 +505,39 @@ int cp8086::run()
                 xchg(memory[real_addr]);
                 break;
             }
+            {
+            case 0b10001101:
+                PRINT_COM(real_addr, "LEA");
+                lea(memory[real_addr]);
+                break;
+            case 0b11000101:
+                PRINT_COM(real_addr, "LDS");
+                lds(memory[real_addr]);
+                break;
+            case 0b11000100:
+                PRINT_COM(real_addr, "LES");
+                les(memory[real_addr]);
+                break;
+            case 0b10011111:
+                PRINT_COM(real_addr, "LAHF");
+                lahf(memory[real_addr]);
+                break;
+            case 0b10011110:
+                PRINT_COM(real_addr, "SAHF");
+                sahf(memory[real_addr]);
+                break;
+            case 0b10011100:
+                PRINT_COM(real_addr, "PUSHF");
+                pushf(memory[real_addr]);
+                break;
+            case 0b10011101:
+                PRINT_COM(real_addr, "POPF");
+                popf(memory[real_addr]);
+                break;
+            }
             
+                
+
         default:
             return 1;
             break;
@@ -1271,7 +1308,7 @@ void cp8086::mov(BYTE com)
             }
             r->reg_half[1] = memory[real_addr + 2];
             r->reg_half[0] = memory[real_addr + 1];
-            ip.reg+=2;
+            ip.reg += 2;
             return;
         }
         else
@@ -1316,7 +1353,7 @@ void cp8086::mov(BYTE com)
                 break;
             }
             r->reg_half[h] = memory[real_addr + 1];
-            ip.reg+=1;
+            ip.reg += 1;
             return;
         }
     }
@@ -1343,23 +1380,22 @@ void cp8086::mov(BYTE com)
         else
         {
             REGISTER addr_to_write;
-            addr_to_write.reg_half[0]=memory[real_addr + 1];
-            addr_to_write.reg_half[1]=memory[real_addr + 2];
+            addr_to_write.reg_half[0] = memory[real_addr + 1];
+            addr_to_write.reg_half[1] = memory[real_addr + 2];
             if (d == 0)
             {
                 ax.reg_half[1] = memory[local_convert_cs_ip_to_real(ds, addr_to_write)];
-                ax.reg_half[0] = memory[local_convert_cs_ip_to_real(ds, addr_to_write.reg+1)];
+                ax.reg_half[0] = memory[local_convert_cs_ip_to_real(ds, addr_to_write.reg + 1)];
                 ip.reg += 2;
                 return;
             }
             else
             {
                 memory[local_convert_cs_ip_to_real(ds, addr_to_write)] = ax.reg_half[0];
-                memory[local_convert_cs_ip_to_real(ds, addr_to_write.reg+1)] = ax.reg_half[1];
+                memory[local_convert_cs_ip_to_real(ds, addr_to_write.reg + 1)] = ax.reg_half[1];
                 ip.reg += 2;
                 return;
             }
-            
         }
     }
 
@@ -1965,7 +2001,7 @@ void cp8086::pop(BYTE com)
                 sp.reg_half[1] = memory[local_convert_cs_ip_to_real(ss, tmp) + 1];
                 sp.reg_half[0] = memory[local_convert_cs_ip_to_real(ss, tmp)];
             }
-                break;
+            break;
             case 0X05:
                 bp.reg_half[1] = memory[local_convert_cs_ip_to_real(ss, sp) + 1];
                 bp.reg_half[0] = memory[local_convert_cs_ip_to_real(ss, sp)];
@@ -2195,7 +2231,7 @@ void cp8086::pop(BYTE com)
             sp.reg_half[1] = memory[local_convert_cs_ip_to_real(ss, tmp) + 1];
             sp.reg_half[0] = memory[local_convert_cs_ip_to_real(ss, tmp)];
         }
-            break;
+        break;
         case 0X05:
             bp.reg_half[1] = memory[local_convert_cs_ip_to_real(ss, sp) + 1];
             bp.reg_half[0] = memory[local_convert_cs_ip_to_real(ss, sp)];
@@ -2220,23 +2256,23 @@ void cp8086::pop(BYTE com)
         switch (com & 0X18)
         {
         case 0b00000000:
-            es.reg_half[1]= memory[local_convert_cs_ip_to_real(ss, sp) + 1];
-            es.reg_half[0]= memory[local_convert_cs_ip_to_real(ss, sp)];
+            es.reg_half[1] = memory[local_convert_cs_ip_to_real(ss, sp) + 1];
+            es.reg_half[0] = memory[local_convert_cs_ip_to_real(ss, sp)];
             break;
         case 0b00001000:
-            cs.reg_half[1]= memory[local_convert_cs_ip_to_real(ss, sp) + 1];
-            es.reg_half[0]= memory[local_convert_cs_ip_to_real(ss, sp)];
+            cs.reg_half[1] = memory[local_convert_cs_ip_to_real(ss, sp) + 1];
+            es.reg_half[0] = memory[local_convert_cs_ip_to_real(ss, sp)];
             break;
         case 0b00010000:
         {
-            REGISTER tmp=ss;
-            ss.reg_half[1]= memory[local_convert_cs_ip_to_real(tmp, sp) + 1];
-            ss.reg_half[0]= memory[local_convert_cs_ip_to_real(tmp, sp)];
+            REGISTER tmp = ss;
+            ss.reg_half[1] = memory[local_convert_cs_ip_to_real(tmp, sp) + 1];
+            ss.reg_half[0] = memory[local_convert_cs_ip_to_real(tmp, sp)];
             break;
         }
         case 0b00011000:
-            ds.reg_half[1]= memory[local_convert_cs_ip_to_real(ss, sp) + 1];
-            ds.reg_half[0]= memory[local_convert_cs_ip_to_real(ss, sp)];
+            ds.reg_half[1] = memory[local_convert_cs_ip_to_real(ss, sp) + 1];
+            ds.reg_half[0] = memory[local_convert_cs_ip_to_real(ss, sp)];
             break;
         default:
             break;
@@ -2247,7 +2283,7 @@ void cp8086::pop(BYTE com)
 void cp8086::xchg(BYTE com)
 {
     BYTE w = com & 0X01;
-    BYTE scnd=memory[real_addr+1];
+    BYTE scnd = memory[real_addr + 1];
     if ((com & 0XFE) == 0b10000110) // reg/mem
     {
         if ((scnd & 0XC0) == 0XC0) // reg to reg
@@ -2325,103 +2361,103 @@ void cp8086::xchg(BYTE com)
                     break;
                 }
                 REGISTER tmp;
-                tmp.reg=f->reg;
-                f->reg=s->reg;
-                s->reg=tmp.reg;
+                tmp.reg = f->reg;
+                f->reg = s->reg;
+                s->reg = tmp.reg;
                 return;
             }
             else
             {
-                int h1=0,h2 = 0;
+                int h1 = 0, h2 = 0;
                 REGISTER *f, *s;
                 switch ((scnd & 0X38))
                 {
                 case 0b00000000:
-                    h1=0;
+                    h1 = 0;
                     f = &ax;
                     break;
 
                 case 0b00001000:
-                    h1=0;
+                    h1 = 0;
                     f = &cx;
                     break;
 
                 case 0b00010000:
-                    h1=0;
+                    h1 = 0;
                     f = &dx;
                     break;
 
                 case 0b00011000:
-                    h1=0;
+                    h1 = 0;
                     f = &bx;
                     break;
 
                 case 0b00100000:
-                    h1=1;
+                    h1 = 1;
                     f = &ax;
                     break;
 
                 case 0b00101000:
-                    h1=1;
+                    h1 = 1;
                     f = &cx;
                     break;
 
                 case 0b00110000:
-                    h1=1;
+                    h1 = 1;
                     f = &dx;
                     break;
 
                 case 0b00111000:
-                    h1=1;
+                    h1 = 1;
                     f = &bx;
                     break;
                 }
                 switch ((scnd & 0X07))
                 {
                 case 0b00000000:
-                    h2=0;
+                    h2 = 0;
                     s = &ax;
                     break;
 
                 case 0b00000001:
-                    h2=0;
+                    h2 = 0;
                     s = &cx;
                     break;
 
                 case 0b00000010:
-                    h2=0;
+                    h2 = 0;
                     s = &dx;
                     break;
 
                 case 0b00000011:
-                    h2=0;
+                    h2 = 0;
                     s = &bx;
                     break;
 
                 case 0b00000100:
-                    h2=1;
+                    h2 = 1;
                     s = &ax;
                     break;
 
                 case 0b00000101:
-                    h2=1;
+                    h2 = 1;
                     s = &cx;
                     break;
 
                 case 0b00000110:
-                    h2=1;
+                    h2 = 1;
                     s = &dx;
                     break;
 
                 case 0b00000111:
-                    h2=1;
+                    h2 = 1;
                     s = &bx;
                     break;
                 }
                 BYTE tmp;
-                tmp=f->reg_half[h1];
-                f->reg_half[h1]=s->reg_half[h2];
-                s->reg_half[h2]=tmp;
+                tmp = f->reg_half[h1];
+                f->reg_half[h1] = s->reg_half[h2];
+                s->reg_half[h2] = tmp;
                 return;
             }
         }
@@ -2650,99 +2686,837 @@ void cp8086::xchg(BYTE com)
                     break;
                 }
                 REGISTER tmp;
-                tmp.reg=reg->reg;
-                reg->reg_half[0]=memory[addr_sum];
-                reg->reg_half[1]=memory[addr_sum+1];
-                memory[addr_sum]=tmp.reg_half[0];
-                memory[addr_sum+1]=tmp.reg_half[1];
+                tmp.reg = reg->reg;
+                reg->reg_half[0] = memory[addr_sum];
+                reg->reg_half[1] = memory[addr_sum + 1];
+                memory[addr_sum] = tmp.reg_half[0];
+                memory[addr_sum + 1] = tmp.reg_half[1];
                 return;
             }
             else
             {
-                int h=0;
+                int h = 0;
                 switch ((scnd & 0X38))
                 {
                 case 0b00000000:
-                    h=0;
+                    h = 0;
                     reg = &ax;
                     break;
 
                 case 0b00001000:
-                    h=0;
+                    h = 0;
                     reg = &cx;
                     break;
 
                 case 0b00010000:
-                    h=0;
+                    h = 0;
                     reg = &dx;
                     break;
 
                 case 0b00011000:
-                    h=0;
+                    h = 0;
                     reg = &bx;
                     break;
 
                 case 0b00100000:
-                    h=1;
+                    h = 1;
                     reg = &ax;
                     break;
 
                 case 0b00101000:
-                    h=1;
+                    h = 1;
                     reg = &cx;
                     break;
 
                 case 0b00110000:
-                    h=1;
+                    h = 1;
                     reg = &dx;
                     break;
 
                 case 0b00111000:
-                    h=1;
+                    h = 1;
                     reg = &bx;
                     break;
                 }
-                BYTE tmp=reg->reg_half[h];
-                reg->reg_half[h]=memory[addr_sum];
-                memory[addr_sum]=tmp;
+                BYTE tmp = reg->reg_half[h];
+                reg->reg_half[h] = memory[addr_sum];
+                memory[addr_sum] = tmp;
                 return;
             }
         }
-    }       
+    }
 
-    if ((com & 0XF8) == 0b10010000) //reg/ax
+    if ((com & 0XF8) == 0b10010000) // reg/ax
     {
         REGISTER *reg;
-        switch ((com&0X07))
+        switch ((com & 0X07))
         {
         case 0X01:
-            reg=&cx;
+            reg = &cx;
             break;
         case 0X02:
-            reg=&dx;
+            reg = &dx;
             break;
         case 0X03:
-            reg=&bx;
+            reg = &bx;
             break;
         case 0X04:
-            reg=&sp;
+            reg = &sp;
             break;
         case 0X05:
-            reg=&bp;
+            reg = &bp;
             break;
         case 0X06:
-            reg=&si;
+            reg = &si;
             break;
         case 0X07:
-            reg=&di;
+            reg = &di;
             break;
         default:
             break;
         }
         REG_SIZE tmp;
-        tmp=ax.reg;
-        ax.reg=reg->reg;
-        reg->reg=tmp;
+        tmp = ax.reg;
+        ax.reg = reg->reg;
+        reg->reg = tmp;
         return;
     }
+}
+
+void cp8086::lea(BYTE com)
+{
+    BYTE scnd = memory[real_addr + 1];
+    if ((scnd & 0XC0) == 0XC0)
+    {
+        std::cout << "There is error in lea\n";
+        *error = 1;
+        delete this;
+    }
+    else
+    {
+        REGISTER *reg;
+        REG_SIZE addr_sum;
+        switch ((scnd & 0XC7))
+        {
+        case 0b00000000:
+            addr_sum = bx.reg + si.reg;
+            ip.reg++;
+            break;
+
+        case 0b00000001:
+            addr_sum = bx.reg + di.reg;
+            ip.reg++;
+            break;
+
+        case 0b00000010:
+            addr_sum = bp.reg + si.reg;
+            ip.reg++;
+            break;
+
+        case 0b00000011:
+            addr_sum = bp.reg + di.reg;
+            ip.reg++;
+            break;
+
+        case 0b00000100:
+            addr_sum = si.reg;
+            ip.reg++;
+            break;
+
+        case 0b00000101:
+            addr_sum = di.reg;
+            ip.reg++;
+            break;
+
+        case 0b00000110:
+        {
+            REG_SIZE l = memory[real_addr + 3];
+            l = l << 8;
+
+            l = l | memory[real_addr + 2];
+            addr_sum = l;
+            ip.reg += 3;
+            break;
+        }
+
+        case 0b00000111:
+            addr_sum = bx.reg;
+            ip.reg++;
+            break;
+
+        case 0b01000000:
+            addr_sum = bx.reg + si.reg + memory[real_addr + 2];
+            ip.reg += 2;
+            break;
+
+        case 0b01000001:
+            addr_sum = bx.reg + di.reg + memory[real_addr + 2];
+            ip.reg += 2;
+            break;
+
+        case 0b01000010:
+            addr_sum = bp.reg + si.reg + memory[real_addr + 2];
+            ip.reg += 2;
+            break;
+
+        case 0b01000011:
+            addr_sum = bp.reg + di.reg + memory[real_addr + 2];
+            ip.reg += 2;
+            break;
+
+        case 0b01000100:
+            addr_sum = si.reg + memory[real_addr + 2];
+            ip.reg += 2;
+            break;
+
+        case 0b01000101:
+            addr_sum = di.reg + memory[real_addr + 2];
+            ip.reg += 2;
+            break;
+
+        case 0b01000110:
+            addr_sum = bp.reg + memory[real_addr + 2];
+            ip.reg += 2;
+            break;
+
+        case 0b01000111:
+            addr_sum = bx.reg + memory[real_addr + 2];
+            ip.reg += 2;
+            break;
+
+        case 0b10000000:
+        {
+            REG_SIZE l = 0;
+            l = memory[real_addr + 3];
+            l = l << 8;
+
+            l = l | memory[real_addr + 2];
+            addr_sum = bx.reg + si.reg + l;
+            ip.reg += 3;
+        }
+        break;
+
+        case 0b10000001:
+        {
+            REG_SIZE l = 0;
+            l = memory[real_addr + 3];
+            l = l << 8;
+
+            l = l | memory[real_addr + 2];
+            addr_sum = bx.reg + di.reg + l;
+            ip.reg += 3;
+        }
+        break;
+
+        case 0b10000010:
+        {
+            REG_SIZE l = 0;
+            l = memory[real_addr + 3];
+            l = l << 8;
+
+            l = l | memory[real_addr + 2];
+            addr_sum = bp.reg + si.reg + l;
+            ip.reg += 3;
+        }
+        break;
+
+        case 0b10000011:
+        {
+            REG_SIZE l = 0;
+            l = memory[real_addr + 3];
+            l = l << 8;
+
+            l = l | memory[real_addr + 2];
+            addr_sum = bp.reg + di.reg + l;
+            ip.reg += 3;
+        }
+        break;
+
+        case 0b10000100:
+        {
+            REG_SIZE l = 0;
+            l = memory[real_addr + 3];
+            l = l << 8;
+
+            l = l | memory[real_addr + 2];
+            addr_sum = si.reg + l;
+            ip.reg += 3;
+        }
+        break;
+
+        case 0b10000101:
+        {
+            REG_SIZE l = 0;
+            l = memory[real_addr + 3];
+            l = l << 8;
+
+            l = l | memory[real_addr + 2];
+            addr_sum = di.reg + l;
+            ip.reg += 3;
+        }
+        break;
+        case 0b10000110:
+        {
+            REG_SIZE l = 0;
+            l = memory[real_addr + 3];
+            l = l << 8;
+
+            l = l | memory[real_addr + 2];
+            addr_sum = bp.reg + l;
+            ip.reg += 3;
+        }
+        break;
+        case 0b10000111:
+        {
+            REG_SIZE l = 0;
+            l = memory[real_addr + 3];
+            l = l << 8;
+
+            l = l | memory[real_addr + 2];
+            addr_sum = bx.reg + l;
+            ip.reg += 3;
+        }
+        break;
+        default:
+            break;
+        }
+        switch ((scnd & 0X38))
+        {
+        case 0b00000000:
+            reg = &ax;
+            break;
+
+        case 0b00001000:
+            reg = &cx;
+            break;
+
+        case 0b00010000:
+            reg = &dx;
+            break;
+
+        case 0b00011000:
+            reg = &bx;
+            break;
+
+        case 0b00100000:
+            reg = &sp;
+            break;
+
+        case 0b00101000:
+            reg = &bp;
+            break;
+
+        case 0b00110000:
+            reg = &si;
+            break;
+
+        case 0b00111000:
+            reg = &di;
+            break;
+        }
+        reg->reg = addr_sum;
+    }
+}
+
+void cp8086::lds(BYTE com)
+{
+    BYTE scnd = memory[real_addr + 1];
+    if ((scnd & 0XC0) == 0XC0)
+    {
+        std::cout << "There is error in lds\n";
+        *error = 2;
+        delete this;
+    }
+    else
+    {
+        REGISTER *reg;
+        REG_SIZE addr_sum;
+        switch ((scnd & 0XC7))
+        {
+        case 0b00000000:
+            addr_sum = bx.reg + si.reg;
+            ip.reg++;
+            break;
+
+        case 0b00000001:
+            addr_sum = bx.reg + di.reg;
+            ip.reg++;
+            break;
+
+        case 0b00000010:
+            addr_sum = bp.reg + si.reg;
+            ip.reg++;
+            break;
+
+        case 0b00000011:
+            addr_sum = bp.reg + di.reg;
+            ip.reg++;
+            break;
+
+        case 0b00000100:
+            addr_sum = si.reg;
+            ip.reg++;
+            break;
+
+        case 0b00000101:
+            addr_sum = di.reg;
+            ip.reg++;
+            break;
+
+        case 0b00000110:
+        {
+            REG_SIZE l = memory[real_addr + 3];
+            l = l << 8;
+
+            l = l | memory[real_addr + 2];
+            addr_sum = l;
+            ip.reg += 3;
+            break;
+        }
+
+        case 0b00000111:
+            addr_sum = bx.reg;
+            ip.reg++;
+            break;
+
+        case 0b01000000:
+            addr_sum = bx.reg + si.reg + memory[real_addr + 2];
+            ip.reg += 2;
+            break;
+
+        case 0b01000001:
+            addr_sum = bx.reg + di.reg + memory[real_addr + 2];
+            ip.reg += 2;
+            break;
+
+        case 0b01000010:
+            addr_sum = bp.reg + si.reg + memory[real_addr + 2];
+            ip.reg += 2;
+            break;
+
+        case 0b01000011:
+            addr_sum = bp.reg + di.reg + memory[real_addr + 2];
+            ip.reg += 2;
+            break;
+
+        case 0b01000100:
+            addr_sum = si.reg + memory[real_addr + 2];
+            ip.reg += 2;
+            break;
+
+        case 0b01000101:
+            addr_sum = di.reg + memory[real_addr + 2];
+            ip.reg += 2;
+            break;
+
+        case 0b01000110:
+            addr_sum = bp.reg + memory[real_addr + 2];
+            ip.reg += 2;
+            break;
+
+        case 0b01000111:
+            addr_sum = bx.reg + memory[real_addr + 2];
+            ip.reg += 2;
+            break;
+
+        case 0b10000000:
+        {
+            REG_SIZE l = 0;
+            l = memory[real_addr + 3];
+            l = l << 8;
+
+            l = l | memory[real_addr + 2];
+            addr_sum = bx.reg + si.reg + l;
+            ip.reg += 3;
+        }
+        break;
+
+        case 0b10000001:
+        {
+            REG_SIZE l = 0;
+            l = memory[real_addr + 3];
+            l = l << 8;
+
+            l = l | memory[real_addr + 2];
+            addr_sum = bx.reg + di.reg + l;
+            ip.reg += 3;
+        }
+        break;
+
+        case 0b10000010:
+        {
+            REG_SIZE l = 0;
+            l = memory[real_addr + 3];
+            l = l << 8;
+
+            l = l | memory[real_addr + 2];
+            addr_sum = bp.reg + si.reg + l;
+            ip.reg += 3;
+        }
+        break;
+
+        case 0b10000011:
+        {
+            REG_SIZE l = 0;
+            l = memory[real_addr + 3];
+            l = l << 8;
+
+            l = l | memory[real_addr + 2];
+            addr_sum = bp.reg + di.reg + l;
+            ip.reg += 3;
+        }
+        break;
+
+        case 0b10000100:
+        {
+            REG_SIZE l = 0;
+            l = memory[real_addr + 3];
+            l = l << 8;
+
+            l = l | memory[real_addr + 2];
+            addr_sum = si.reg + l;
+            ip.reg += 3;
+        }
+        break;
+
+        case 0b10000101:
+        {
+            REG_SIZE l = 0;
+            l = memory[real_addr + 3];
+            l = l << 8;
+
+            l = l | memory[real_addr + 2];
+            addr_sum = di.reg + l;
+            ip.reg += 3;
+        }
+        break;
+        case 0b10000110:
+        {
+            REG_SIZE l = 0;
+            l = memory[real_addr + 3];
+            l = l << 8;
+
+            l = l | memory[real_addr + 2];
+            addr_sum = bp.reg + l;
+            ip.reg += 3;
+        }
+        break;
+        case 0b10000111:
+        {
+            REG_SIZE l = 0;
+            l = memory[real_addr + 3];
+            l = l << 8;
+
+            l = l | memory[real_addr + 2];
+            addr_sum = bx.reg + l;
+            ip.reg += 3;
+        }
+        break;
+        default:
+            break;
+        }
+        switch ((scnd & 0X38))
+        {
+        case 0b00000000:
+            reg = &ax;
+            break;
+
+        case 0b00001000:
+            reg = &cx;
+            break;
+
+        case 0b00010000:
+            reg = &dx;
+            break;
+
+        case 0b00011000:
+            reg = &bx;
+            break;
+
+        case 0b00100000:
+            reg = &sp;
+            break;
+
+        case 0b00101000:
+            reg = &bp;
+            break;
+
+        case 0b00110000:
+            reg = &si;
+            break;
+
+        case 0b00111000:
+            reg = &di;
+            break;
+        }
+        REG_SIZE tmp = ds.reg;
+        reg->reg_half[0] = memory[local_convert_cs_ip_to_real(tmp, addr_sum)];
+        reg->reg_half[1] = memory[local_convert_cs_ip_to_real(tmp, addr_sum) + 1];
+        ds.reg_half[0] = memory[local_convert_cs_ip_to_real(tmp, addr_sum) + 2];
+        ds.reg_half[1] = memory[local_convert_cs_ip_to_real(tmp, addr_sum) + 3];
+    }
+}
+
+void cp8086::les(BYTE com)
+{
+    BYTE scnd = memory[real_addr + 1];
+    if ((scnd & 0XC0) == 0XC0)
+    {
+        std::cout << "There is error in les\n";
+        *error = 3;
+        delete this;
+    }
+    else
+    {
+        REGISTER *reg;
+        REG_SIZE addr_sum;
+        switch ((scnd & 0XC7))
+        {
+        case 0b00000000:
+            addr_sum = bx.reg + si.reg;
+            ip.reg++;
+            break;
+
+        case 0b00000001:
+            addr_sum = bx.reg + di.reg;
+            ip.reg++;
+            break;
+
+        case 0b00000010:
+            addr_sum = bp.reg + si.reg;
+            ip.reg++;
+            break;
+
+        case 0b00000011:
+            addr_sum = bp.reg + di.reg;
+            ip.reg++;
+            break;
+
+        case 0b00000100:
+            addr_sum = si.reg;
+            ip.reg++;
+            break;
+
+        case 0b00000101:
+            addr_sum = di.reg;
+            ip.reg++;
+            break;
+
+        case 0b00000110:
+        {
+            REG_SIZE l = memory[real_addr + 3];
+            l = l << 8;
+
+            l = l | memory[real_addr + 2];
+            addr_sum = l;
+            ip.reg += 3;
+            break;
+        }
+
+        case 0b00000111:
+            addr_sum = bx.reg;
+            ip.reg++;
+            break;
+
+        case 0b01000000:
+            addr_sum = bx.reg + si.reg + memory[real_addr + 2];
+            ip.reg += 2;
+            break;
+
+        case 0b01000001:
+            addr_sum = bx.reg + di.reg + memory[real_addr + 2];
+            ip.reg += 2;
+            break;
+
+        case 0b01000010:
+            addr_sum = bp.reg + si.reg + memory[real_addr + 2];
+            ip.reg += 2;
+            break;
+
+        case 0b01000011:
+            addr_sum = bp.reg + di.reg + memory[real_addr + 2];
+            ip.reg += 2;
+            break;
+
+        case 0b01000100:
+            addr_sum = si.reg + memory[real_addr + 2];
+            ip.reg += 2;
+            break;
+
+        case 0b01000101:
+            addr_sum = di.reg + memory[real_addr + 2];
+            ip.reg += 2;
+            break;
+
+        case 0b01000110:
+            addr_sum = bp.reg + memory[real_addr + 2];
+            ip.reg += 2;
+            break;
+
+        case 0b01000111:
+            addr_sum = bx.reg + memory[real_addr + 2];
+            ip.reg += 2;
+            break;
+
+        case 0b10000000:
+        {
+            REG_SIZE l = 0;
+            l = memory[real_addr + 3];
+            l = l << 8;
+
+            l = l | memory[real_addr + 2];
+            addr_sum = bx.reg + si.reg + l;
+            ip.reg += 3;
+        }
+        break;
+
+        case 0b10000001:
+        {
+            REG_SIZE l = 0;
+            l = memory[real_addr + 3];
+            l = l << 8;
+
+            l = l | memory[real_addr + 2];
+            addr_sum = bx.reg + di.reg + l;
+            ip.reg += 3;
+        }
+        break;
+
+        case 0b10000010:
+        {
+            REG_SIZE l = 0;
+            l = memory[real_addr + 3];
+            l = l << 8;
+
+            l = l | memory[real_addr + 2];
+            addr_sum = bp.reg + si.reg + l;
+            ip.reg += 3;
+        }
+        break;
+
+        case 0b10000011:
+        {
+            REG_SIZE l = 0;
+            l = memory[real_addr + 3];
+            l = l << 8;
+
+            l = l | memory[real_addr + 2];
+            addr_sum = bp.reg + di.reg + l;
+            ip.reg += 3;
+        }
+        break;
+
+        case 0b10000100:
+        {
+            REG_SIZE l = 0;
+            l = memory[real_addr + 3];
+            l = l << 8;
+
+            l = l | memory[real_addr + 2];
+            addr_sum = si.reg + l;
+            ip.reg += 3;
+        }
+        break;
+
+        case 0b10000101:
+        {
+            REG_SIZE l = 0;
+            l = memory[real_addr + 3];
+            l = l << 8;
+
+            l = l | memory[real_addr + 2];
+            addr_sum = di.reg + l;
+            ip.reg += 3;
+        }
+        break;
+        case 0b10000110:
+        {
+            REG_SIZE l = 0;
+            l = memory[real_addr + 3];
+            l = l << 8;
+
+            l = l | memory[real_addr + 2];
+            addr_sum = bp.reg + l;
+            ip.reg += 3;
+        }
+        break;
+        case 0b10000111:
+        {
+            REG_SIZE l = 0;
+            l = memory[real_addr + 3];
+            l = l << 8;
+
+            l = l | memory[real_addr + 2];
+            addr_sum = bx.reg + l;
+            ip.reg += 3;
+        }
+        break;
+        default:
+            break;
+        }
+        switch ((scnd & 0X38))
+        {
+        case 0b00000000:
+            reg = &ax;
+            break;
+
+        case 0b00001000:
+            reg = &cx;
+            break;
+
+        case 0b00010000:
+            reg = &dx;
+            break;
+
+        case 0b00011000:
+            reg = &bx;
+            break;
+
+        case 0b00100000:
+            reg = &sp;
+            break;
+
+        case 0b00101000:
+            reg = &bp;
+            break;
+
+        case 0b00110000:
+            reg = &si;
+            break;
+
+        case 0b00111000:
+            reg = &di;
+            break;
+        }
+        reg->reg_half[0] = memory[local_convert_cs_ip_to_real(ds, addr_sum)];
+        reg->reg_half[1] = memory[local_convert_cs_ip_to_real(ds, addr_sum) + 1];
+        es.reg_half[0] = memory[local_convert_cs_ip_to_real(ds, addr_sum) + 2];
+        es.reg_half[1] = memory[local_convert_cs_ip_to_real(ds, addr_sum) + 3];
+    }
+}
+
+void cp8086::lahf(BYTE com)
+{
+    ax.reg_half[1]=flags&0X00FF;
+    printFlags();
+}
+void cp8086::sahf(BYTE com)
+{
+    flags = ax.reg_half[1];
+    printFlags();
+}
+void cp8086::pushf(BYTE com)
+{
+    sp.reg-=2;
+    memory[local_convert_cs_ip_to_real(ss,sp)+1]=(flags>>8);
+    memory[local_convert_cs_ip_to_real(ss,sp)]=flags;
+    printStack();
+}
+void cp8086::popf(BYTE com)
+{
+    flags=memory[local_convert_cs_ip_to_real(ss,sp)+1];
+    flags=flags<<8;
+    flags |= memory[local_convert_cs_ip_to_real(ss,sp)];
+    sp.reg+=2;
+    printStack();
 }
