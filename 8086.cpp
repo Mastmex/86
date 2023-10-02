@@ -143,7 +143,19 @@ void cp8086::memory_dump()
 
 void cp8086::printFlags()
 {
-    printf("\t\tflags -- %04X\n", flags);
+    printf("\
+    \tNT\tOF\tDF\tIF\tTF\tSF\tZF\tAF\tPF\tCF\n\
+    \t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
+           (flags & 0X4000) == 0X4000 ? 1 : 0,
+           (flags & 0X0800) == 0X0800 ? 1 : 0,
+           (flags & 0X0400) == 0X0400 ? 1 : 0,
+           (flags & 0X0200) == 0X0200 ? 1 : 0,
+           (flags & 0X0100) == 0X0100 ? 1 : 0,
+           (flags & 0X0080) == 0X0080 ? 1 : 0,
+           (flags & 0X0040) == 0X0040 ? 1 : 0,
+           (flags & 0X0010) == 0X0010 ? 1 : 0,
+           (flags & 0X0004) == 0X0004 ? 1 : 0,
+           (flags & 0X0001) == 0X0001 ? 1 : 0);
 }
 
 void cp8086::printRegs()
@@ -535,9 +547,91 @@ int cp8086::run()
                 popf(memory[real_addr]);
                 break;
             }
-            
-                
-
+            {
+            case 0b00000000:
+                PRINT_COM(real_addr, "ADD");
+                add(memory[real_addr]);
+                printFlags();
+                break;
+            case 0b00000001:
+                PRINT_COM(real_addr, "ADD");
+                add(memory[real_addr]);
+                printFlags();
+                break;
+            case 0b00000010:
+                PRINT_COM(real_addr, "ADD");
+                add(memory[real_addr]);
+                printFlags();
+                break;
+            case 0b00000011:
+                PRINT_COM(real_addr, "ADD");
+                add(memory[real_addr]);
+                printFlags();
+                break;
+            case 0b10000000:
+                if ((memory[real_addr + 1] & 0X38) == 0b00000000)   //maybe adc,sub, etc.
+                {
+                    PRINT_COM(real_addr, "ADD");
+                    add(memory[real_addr]);
+                    printFlags();
+                    break;
+                }
+            case 0b10000001:
+                if ((memory[real_addr + 1] & 0X38) == 0b00000000)   //maybe adc,sub, etc.
+                {
+                    PRINT_COM(real_addr, "ADD");
+                    add(memory[real_addr]);
+                    printFlags();
+                    break;
+                }
+            case 0b10000011:
+                if ((memory[real_addr + 1] & 0X38) == 0b00000000)   //maybe adc,sub, etc.
+                {
+                    PRINT_COM(real_addr, "ADD");
+                    add(memory[real_addr]);
+                    printFlags();
+                    break;
+                }
+            }
+            {
+            case 0b00111000:
+                PRINT_COM(real_addr, "CMP");
+                cmp(memory[real_addr]);
+                printFlags();
+                break;
+            case 0b00111001:
+                PRINT_COM(real_addr, "CMP");
+                cmp(memory[real_addr]);
+                printFlags();
+                break;
+            case 0b00111010:
+                PRINT_COM(real_addr, "CMP");
+                cmp(memory[real_addr]);
+                printFlags();
+                break;
+            case 0b00111011:
+                PRINT_COM(real_addr, "CMP");
+                cmp(memory[real_addr]);
+                printFlags();
+                break;
+            }
+            {   //jmp
+                case 0b01111111:
+                PRINT_COM(real_addr, "JG");
+                jmp(memory[real_addr]);
+                printFlags();
+                break;
+                case 0b11100010:
+                PRINT_COM(real_addr, "LOOP");
+                jmp(memory[real_addr]);
+                printFlags();
+                break;
+                case 0b11101011:
+                PRINT_COM(real_addr, "JMP");    //jmp short
+                jmp(memory[real_addr]);
+                printFlags();
+                break;
+            }
         default:
             return 1;
             break;
@@ -565,6 +659,46 @@ void cp8086::flagCF(int s)
         flags = flags ^ 0X0001;
 }
 
+void cp8086::flagPF(int s)
+{
+    if (s == 0)
+        flags &= 0XFFFB;
+    if (s == 1)
+        flags |= 0X0004;
+    if (s == 2)
+        flags = flags ^ 0X0004;
+}
+
+void cp8086::flagAF(int s)
+{
+    if (s == 0)
+        flags &= 0XFFEF;
+    if (s == 1)
+        flags |= 0X0010;
+    if (s == 2)
+        flags ^= 0X0010;
+}
+
+void cp8086::flagZF(int s)
+{
+    if (s == 0)
+        flags &= 0XFFBF;
+    if (s == 1)
+        flags |= 0X0040;
+    if (s == 2)
+        flags ^= 0X0040;
+}
+
+void cp8086::flagSF(int s)
+{
+    if (s == 0)
+        flags &= 0XFF7F;
+    if (s == 1)
+        flags |= 0X0080;
+    if (s == 2)
+        flags ^= 0X0080;
+}
+
 void cp8086::flagDF(int s)
 {
     if (s == 0)
@@ -583,6 +717,16 @@ void cp8086::flagIF(int s)
         flags |= 0X0200;
     if (s == 2)
         flags = flags ^ 0X0200;
+}
+
+void cp8086::flagOF(int s)
+{
+    if (s == 0)
+        flags &= 0XF7FF;
+    if (s == 1)
+        flags |= 0X0800;
+    if (s == 2)
+        flags = flags ^ 0X0800;
 }
 
 void cp8086::mov(BYTE com)
@@ -3497,26 +3641,534 @@ void cp8086::les(BYTE com)
 
 void cp8086::lahf(BYTE com)
 {
-    ax.reg_half[1]=flags&0X00FF;
+    ax.reg_half[1] = flags & 0X00FF;
     printFlags();
 }
+
 void cp8086::sahf(BYTE com)
 {
     flags = ax.reg_half[1];
     printFlags();
 }
+
 void cp8086::pushf(BYTE com)
 {
-    sp.reg-=2;
-    memory[local_convert_cs_ip_to_real(ss,sp)+1]=(flags>>8);
-    memory[local_convert_cs_ip_to_real(ss,sp)]=flags;
+    sp.reg -= 2;
+    memory[local_convert_cs_ip_to_real(ss, sp) + 1] = (flags >> 8);
+    memory[local_convert_cs_ip_to_real(ss, sp)] = flags;
     printStack();
 }
+
 void cp8086::popf(BYTE com)
 {
-    flags=memory[local_convert_cs_ip_to_real(ss,sp)+1];
-    flags=flags<<8;
-    flags |= memory[local_convert_cs_ip_to_real(ss,sp)];
-    sp.reg+=2;
+    flags = memory[local_convert_cs_ip_to_real(ss, sp) + 1];
+    flags = flags << 8;
+    flags |= memory[local_convert_cs_ip_to_real(ss, sp)];
+    sp.reg += 2;
     printStack();
+}
+
+void cp8086::add(BYTE com)
+{
+    if ((com & 0XFC) == 0X00) // reg mem, reg reg, mem reg
+    {
+        BYTE scnd = memory[real_addr + 1];
+        int w = com & 0X01;
+        int d = com & 0X02;
+        if ((scnd & 0XC0) == 0XC0) // reg reg
+        {
+            ip.reg++;
+            if (w == 1)
+            {
+                REGISTER *f, *s;
+                switch ((scnd & 0X38))
+                {
+                case 0b00000000:
+                    f = &ax;
+                    break;
+
+                case 0b00001000:
+                    f = &cx;
+                    break;
+
+                case 0b00010000:
+                    f = &dx;
+                    break;
+
+                case 0b00011000:
+                    f = &bx;
+                    break;
+
+                case 0b00100000:
+                    f = &sp;
+                    break;
+
+                case 0b00101000:
+                    f = &bp;
+                    break;
+
+                case 0b00110000:
+                    f = &si;
+                    break;
+
+                case 0b00111000:
+                    f = &di;
+                    break;
+                }
+                switch ((scnd & 0X07))
+                {
+                case 0b00000000:
+                    s = &ax;
+                    break;
+
+                case 0b00000001:
+                    s = &cx;
+                    break;
+
+                case 0b00000010:
+                    s = &dx;
+                    break;
+
+                case 0b00000011:
+                    s = &bx;
+                    break;
+
+                case 0b00000100:
+                    s = &sp;
+                    break;
+
+                case 0b00000101:
+                    s = &bp;
+                    break;
+
+                case 0b00000110:
+                    s = &si;
+                    break;
+
+                case 0b00000111:
+                    s = &di;
+                    break;
+                }
+                if ((com & 0X02) == 0X00)
+                {
+                    REAL_ADDR_SIZE c = 0;
+                    REG_SIZE a = 0,b=0;
+                    b = f->reg + s->reg;
+                    a = s->reg_half[0] + f->reg_half[0];
+                    if (a & 0X0100) // AF
+                        flagAF(1);
+                    else
+                        flagAF(0);
+                    c = s->reg + f->reg;
+                    if (c & 0X00010000) // CF
+                        flagCF(1);
+                    else
+                        flagCF(0);
+                    if (((s->reg & 0X8000) == 0 && (f->reg & 0X8000) == 0 && (c & 0X00008000) == 0X00008000) || ((s->reg & 0X8000) == 1 && (f->reg & 0X8000) == 1 && (c & 0X00008000) == 0))
+                        flagOF(1);
+                    else
+                        flagOF(0);
+                    if (s->reg) // ZF
+                        flagZF(0);
+                    else
+                        flagZF(1);
+                    int p = b >> 15;
+                    flagSF(p); // SF
+                    s->reg = s->reg + f->reg;
+                    std::bitset<8> cc{s->reg_half[0]};
+                    int sm = cc[0] + cc[1] + cc[2] + cc[3] + cc[4] + cc[5] + cc[6] + cc[7];
+                    if (sm == 0 || sm == 2 || sm == 4 || sm == 6 || sm == 8)
+                        flagPF(1);
+                    else
+                        flagPF(0);
+                }
+                else
+                {
+                    REAL_ADDR_SIZE c = 0;
+                    REG_SIZE a = 0,b=0;
+                    b = f->reg + s->reg;
+                    a = s->reg_half[0] + f->reg_half[0];
+                    if (a & 0X0100) // AF
+                        flagAF(1);
+                    else
+                        flagAF(0);
+                    c = s->reg + f->reg;
+                    if (c & 0X00010000) // CF
+                        flagCF(1);
+                    else
+                        flagCF(0);
+                    if (((s->reg & 0X8000) == 0 && (f->reg & 0X8000) == 0 && (c & 0X00008000) == 0X00008000) || ((s->reg & 0X8000) == 1 && (f->reg & 0X8000) == 1 && (c & 0X00008000) == 0))
+                        flagOF(1);
+                    else
+                        flagOF(0);
+                    if (s->reg) // ZF
+                        flagZF(0);
+                    else
+                        flagZF(1);
+                    int p = b >> 15;
+                    flagSF(p); // SF
+                    f->reg = s->reg + f->reg;
+                    std::bitset<8> cc{s->reg_half[0]};
+                    int sm = cc[0] + cc[1] + cc[2] + cc[3] + cc[4] + cc[5] + cc[6] + cc[7];
+                    if (sm == 0 || sm == 2 || sm == 4 || sm == 6 || sm == 8)
+                        flagPF(1);
+                    else
+                        flagPF(0);
+                }
+                return;
+            }
+        }
+    }
+
+    if ((com & 0XFC) == 0X80) // reg/mem data
+    {
+        
+        int sw = com & 0X03;
+        BYTE scnd = memory[real_addr + 1];
+        if ((scnd & 0XC0) == 0XC0) // reg
+        {
+            if (sw == 1)
+            {
+                ip.reg += 3;
+                REGISTER *r;
+                switch ((scnd & 0X07))
+                {
+                case 0b00000000:
+                    r = &ax;
+                    break;
+
+                case 0b00000001:
+                    r = &cx;
+                    break;
+
+                case 0b00000010:
+                    r = &dx;
+                    break;
+
+                case 0b00000011:
+                    r = &bx;
+                    break;
+
+                case 0b00000100:
+                    r = &sp;
+                    break;
+
+                case 0b00000101:
+                    r = &bp;
+                    break;
+
+                case 0b00000110:
+                    r = &si;
+                    break;
+
+                case 0b00000111:
+                    r = &di;
+                    break;
+                }
+                REGISTER data;
+                data.reg_half[0] = memory[real_addr + 2];
+                data.reg_half[1] = memory[real_addr + 3];
+                REAL_ADDR_SIZE c = 0;
+                REG_SIZE a = 0,b=0;
+                a = r->reg_half[0] + data.reg_half[0];
+                if (a & 0X0100) // AF
+                    flagAF(1);
+                else
+                    flagAF(0);
+                c = r->reg + data.reg;
+                if (c & 0X00010000) // CF
+                    flagCF(1);
+                else
+                    flagCF(0);
+                if (((r->reg & 0X8000) == 0 && (data.reg & 0X8000) == 0 && (c & 0X00008000) == 0X00008000) || ((r->reg & 0X8000) == 1 && (data.reg & 0X8000) == 1 && (c & 0X00008000) == 0))
+                    flagOF(1);
+                else
+                    flagOF(0);
+                if (r->reg) // ZF
+                    flagZF(0);
+                else
+                    flagZF(1);
+                int p = r->reg_half[1] >> 7;
+                flagSF(p); // SF
+                r->reg = r->reg + data.reg;
+                std::bitset<8> cc{data.reg_half[0]};
+                int sm = cc[0] + cc[1] + cc[2] + cc[3] + cc[4] + cc[5] + cc[6] + cc[7];
+                if (sm == 0 || sm == 2 || sm == 4 || sm == 6 || sm == 8)
+                    flagPF(1);
+                else
+                    flagPF(0);
+                return;
+            }
+            else
+            {
+                ip.reg += 2;
+                REGISTER *r;
+                int h=0;
+                switch ((scnd & 0X07))
+                {
+                case 0b00000000:
+                    h=0;
+                    r = &ax;
+                    break;
+
+                case 0b00000001:
+                    h=0;
+                    r = &cx;
+                    break;
+
+                case 0b00000010:
+                    h=0;
+                    r = &dx;
+                    break;
+
+                case 0b00000011:
+                    h=0;
+                    r = &bx;
+                    break;
+
+                case 0b00000100:
+                    h=1;
+                    r = &ax;
+                    break;
+
+                case 0b00000101:
+                    h=1;
+                    r = &cx;
+                    break;
+
+                case 0b00000110:
+                    h=1;
+                    r = &dx;
+                    break;
+
+                case 0b00000111:
+                    h=1;
+                    r = &bx;
+                    break;
+                }
+                BYTE data;
+                data=memory[real_addr+2];
+                signed short a = 0;
+                BYTE j;
+                signed char d1,d2,d3,d4;
+                d1=r->reg_half[h];
+                d2=data;
+                d3=d1&0X07;
+                d4=d2&0X07;
+                a=d1+d2;
+                j=(BYTE)a;
+                flagOF((int)(a>=128 || a<=-127));
+                flagCF((int)(a>=128 || a<=-127));
+                std::bitset<8> cc{j};
+                int sm = cc[0] + cc[1] + cc[2] + cc[3] + cc[4] + cc[5] + cc[6] + cc[7];
+                flagPF((int)(sm == 0 || sm == 2 || sm == 4 || sm == 6 || sm == 8));
+                BYTE ms = d3+d4;
+                flagAF((int)((ms&0X08)==0X08));
+                flagZF((int)(a==0));
+                if((a&0X0080)==0X0080)
+                    flagSF(1);
+                else
+                    flagSF(0);
+                r->reg_half[h]=j;
+                return;
+            }
+        }
+    }
+}
+
+void cp8086::cmp(BYTE com)
+{
+    if ((com & 0XFC) == 0b00111000) // reg/mem
+    {
+        BYTE scnd = memory[real_addr + 1];
+        int w = com & 0X01;
+        int d = com & 0X02;
+        if ((scnd & 0XC0) == 0XC0) // reg reg
+        {
+            ip.reg++;
+            if (w == 1)
+            {
+                REGISTER *f, *s;
+                switch ((scnd & 0X38))
+                {
+                case 0b00000000:
+                    f = &ax;
+                    break;
+
+                case 0b00001000:
+                    f = &cx;
+                    break;
+
+                case 0b00010000:
+                    f = &dx;
+                    break;
+
+                case 0b00011000:
+                    f = &bx;
+                    break;
+
+                case 0b00100000:
+                    f = &sp;
+                    break;
+
+                case 0b00101000:
+                    f = &bp;
+                    break;
+
+                case 0b00110000:
+                    f = &si;
+                    break;
+
+                case 0b00111000:
+                    f = &di;
+                    break;
+                }
+                switch ((scnd & 0X07))
+                {
+                case 0b00000000:
+                    s = &ax;
+                    break;
+
+                case 0b00000001:
+                    s = &cx;
+                    break;
+
+                case 0b00000010:
+                    s = &dx;
+                    break;
+
+                case 0b00000011:
+                    s = &bx;
+                    break;
+
+                case 0b00000100:
+                    s = &sp;
+                    break;
+
+                case 0b00000101:
+                    s = &bp;
+                    break;
+
+                case 0b00000110:
+                    s = &si;
+                    break;
+
+                case 0b00000111:
+                    s = &di;
+                    break;
+                }
+                if ((com & 0X02) == 0X00)
+                {
+                    REAL_ADDR_SIZE c = 0;
+                    REG_SIZE a = 0, b = 0;
+                    signed short l1=s->reg,l2=f->reg,l=l1-l2;
+                    b = s->reg - f->reg;
+                    a = s->reg_half[0] - f->reg_half[0];
+                    if ((l1&0X0007)<(l2&0X0007)) // AF
+                        flagAF(1);
+                    else
+                        flagAF(0);
+                    if (l1<l2) // CF
+                        flagCF(1);
+                    else
+                        flagCF(0);
+                    if ((l1>0 && l2>0 && l<0) || (l1>0 && l2>0 && l<0))
+                        flagOF(1);
+                    else
+                        flagOF(0);
+                    if (b) // ZF
+                        flagZF(0);
+                    else
+                        flagZF(1);
+                    int p = l >> 15;
+                    flagSF(p); // SF
+                    REGISTER tmp;
+                    tmp.reg = s->reg - f->reg;
+                    std::bitset<8> cc{tmp.reg_half[0]};
+                    int sm = cc[0] + cc[1] + cc[2] + cc[3] + cc[4] + cc[5] + cc[6] + cc[7];
+                    if (sm == 0 || sm == 2 || sm == 4 || sm == 6 || sm == 8)
+                        flagPF(1);
+                    else
+                        flagPF(0);
+                    return;
+                }
+                else
+                {
+                    REAL_ADDR_SIZE c = 0;
+                    REG_SIZE a = 0, b = 0;
+                    signed short l1=s->reg,l2=f->reg,l=l2-l1;
+                    b = f->reg - s->reg;
+                    a = f->reg_half[0] - s->reg_half[0];
+                    if ((l1&0X0007)>(l2&0X0007)) // AF
+                        flagAF(1);
+                    else
+                        flagAF(0);
+                    if (l1>l2) // CF
+                        flagCF(1);
+                    else
+                        flagCF(0);
+                    if ((l1>0 && l2>0 && l<0) || (l1>0 && l2>0 && l<0))
+                        flagOF(1);
+                    else
+                        flagOF(0);
+                    if (b) // ZF
+                        flagZF(0);
+                    else
+                        flagZF(1);
+                    int p = l >> 15;
+                    flagSF(p); // SF
+                    REGISTER tmp;
+                    tmp.reg = f->reg - s->reg;
+                    std::bitset<8> cc{tmp.reg_half[0]};
+                    int sm = cc[0] + cc[1] + cc[2] + cc[3] + cc[4] + cc[5] + cc[6] + cc[7];
+                    if (sm == 0 || sm == 2 || sm == 4 || sm == 6 || sm == 8)
+                        flagPF(1);
+                    else
+                        flagPF(0);
+                    return;
+                }
+            }
+        }
+    }
+}
+
+void cp8086::jmp(BYTE com)
+{
+    if(com==0b01111111) //JG
+    {
+        if((flags & 0X0020)==0X0000 && ((flags&0X0080)>>6)==((flags&0X0800)>>10))
+        {
+            printf("jmp completed\n");
+            signed char disp=memory[real_addr+1];
+            ip.reg++;
+            ip.reg+=disp;
+            return;
+        }
+        printf("jmp incompleted\n");
+        ip.reg++;
+        return;
+    }
+    if(com==0b11100010) //loop
+    {
+        cx.reg--;
+        if(cx.reg!=0)
+        {
+            printf("loop completed\n");
+            signed char disp=memory[real_addr+1];
+            ip.reg++;
+            ip.reg+=disp;
+            return;
+        }
+        printf("loop incompleted\n");
+        ip.reg++;
+        return;
+    }
+    if(com==0b11101011) //jmp short
+    {
+        printf("jmp completed\n");
+            signed char disp=memory[real_addr+1];
+            ip.reg++;
+            ip.reg+=disp;
+            return;
+    }
 }

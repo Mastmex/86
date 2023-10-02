@@ -24,8 +24,13 @@ private:
     REAL_ADDR_SIZE local_convert_cs_ip_to_real(REGISTER c,REG_SIZE i);
     REAL_ADDR_SIZE local_convert_cs_ip_to_real(REG_SIZE c,REG_SIZE i);
     void flagCF(int s);
+    void flagPF(int s);
+    void flagAF(int s);
+    void flagZF(int s);
+    void flagSF(int s);
     void flagDF(int s);
     void flagIF(int s);
+    void flagOF(int s);
     void printFlags();
     void printRegs();
     void printStack();
@@ -40,6 +45,9 @@ private:
     void sahf(BYTE com);
     void pushf(BYTE com);
     void popf(BYTE com);
+    void add(BYTE com);
+    void cmp(BYTE com);
+    void jmp(BYTE com);
 public:
     void init();
     int set_initial_addr(REAL_ADDR_SIZE initial_addr);
