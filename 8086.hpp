@@ -1,6 +1,6 @@
-#define REG_SIZE unsigned short
-#define BYTE unsigned char
-#define REAL_ADDR_SIZE unsigned int 
+#define REG_SIZE signed short
+#define BYTE signed char
+#define REAL_ADDR_SIZE signed int 
 #include <string>
 
 union REGISTER
