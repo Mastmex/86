@@ -5433,6 +5433,7 @@ void cp8086::ret(BYTE com)
     {
         ip.reg_half[1] = memory[local_convert_cs_ip_to_real(ss, sp) + 1];
         ip.reg_half[0] = memory[local_convert_cs_ip_to_real(ss, sp)];
+        ip.reg--;
         sp.reg += 2;
         return;
     }
