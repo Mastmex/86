@@ -569,7 +569,7 @@ int cp8086::run()
                 printFlags();
                 break;
             case 0b10000000:
-                if ((memory[real_addr + 1] & 0X38) == 0b00000000)   //maybe adc,sub, etc.
+                if ((memory[real_addr + 1] & 0X38) == 0b00000000) // maybe adc,sub, etc.
                 {
                     PRINT_COM(real_addr, "ADD");
                     add(memory[real_addr]);
@@ -577,7 +577,7 @@ int cp8086::run()
                     break;
                 }
             case 0b10000001:
-                if ((memory[real_addr + 1] & 0X38) == 0b00000000)   //maybe adc,sub, etc.
+                if ((memory[real_addr + 1] & 0X38) == 0b00000000) // maybe adc,sub, etc.
                 {
                     PRINT_COM(real_addr, "ADD");
                     add(memory[real_addr]);
@@ -585,13 +585,65 @@ int cp8086::run()
                     break;
                 }
             case 0b10000011:
-                if ((memory[real_addr + 1] & 0X38) == 0b00000000)   //maybe adc,sub, etc.
+                if ((memory[real_addr + 1] & 0X38) == 0b00000000) // maybe adc,sub, etc.
                 {
                     PRINT_COM(real_addr, "ADD");
                     add(memory[real_addr]);
                     printFlags();
                     break;
                 }
+            }
+            {
+            case 0b00010000:
+                PRINT_COM(real_addr, "ADC");
+                adc(memory[real_addr]);
+                printFlags();
+                break;
+            case 0b00010001:
+                PRINT_COM(real_addr, "ADC");
+                adc(memory[real_addr]);
+                printFlags();
+                break;
+            case 0b00010010:
+                PRINT_COM(real_addr, "ADC");
+                adc(memory[real_addr]);
+                printFlags();
+                break;
+            case 0b00010011:
+                PRINT_COM(real_addr, "ADC");
+                adc(memory[real_addr]);
+                printFlags();
+                break;
+            }
+            {
+            case 0b11110110:
+                if ((memory[real_addr + 1] & 0X38) == 0b00100000) // maybe imul/div/idiv
+                {
+                    PRINT_COM(real_addr, "MUL");
+                    mul(memory[real_addr]);
+                    printFlags();
+                }
+                if ((memory[real_addr + 1] & 0X38) == 0b00101000)
+                {
+                    PRINT_COM(real_addr, "IMUL");
+                    imul(memory[real_addr]);
+                    printFlags();
+                }
+                break;
+            case 0b11110111:
+                if ((memory[real_addr + 1] & 0X38) == 0b00100000) // maybe imul/div/idiv
+                {
+                    PRINT_COM(real_addr, "MUL");
+                    mul(memory[real_addr]);
+                    printFlags();
+                }
+                if ((memory[real_addr + 1] & 0X38) == 0b00101000)
+                {
+                    PRINT_COM(real_addr, "IMUL");
+                    imul(memory[real_addr]);
+                    printFlags();
+                }
+                break;
             }
             {
             case 0b00111000:
@@ -615,21 +667,29 @@ int cp8086::run()
                 printFlags();
                 break;
             }
-            {   //jmp
-                case 0b01111111:
+            { // jmp
+            case 0b01111111:
                 PRINT_COM(real_addr, "JG");
                 jmp(memory[real_addr]);
                 printFlags();
                 break;
-                case 0b11100010:
+            case 0b11100010:
                 PRINT_COM(real_addr, "LOOP");
                 jmp(memory[real_addr]);
                 printFlags();
                 break;
-                case 0b11101011:
-                PRINT_COM(real_addr, "JMP");    //jmp short
+            case 0b11101011:
+                PRINT_COM(real_addr, "JMP"); // jmp short
                 jmp(memory[real_addr]);
                 printFlags();
+                break;
+            case 0b11101000:
+                PRINT_COM(real_addr, "CALL"); // jmp short
+                call(memory[real_addr]);
+                break;
+            case 0b11000011:
+                PRINT_COM(real_addr, "RET"); // jmp short
+                ret(memory[real_addr]);
                 break;
             }
         default:
@@ -3675,6 +3735,7 @@ void cp8086::add(BYTE com)
         BYTE scnd = memory[real_addr + 1];
         int w = com & 0X01;
         int d = com & 0X02;
+        printf("%0X\n",scnd & 0XC0);
         if ((scnd & 0XC0) == 0XC0) // reg reg
         {
             ip.reg++;
@@ -3752,69 +3813,525 @@ void cp8086::add(BYTE com)
                 if ((com & 0X02) == 0X00)
                 {
                     REAL_ADDR_SIZE c = 0;
-                    REG_SIZE a = 0,b=0;
+                    REG_SIZE a = 0, b = 0;
+                    signed short a_s = (signed short)f->reg, b_s = (signed short)s->reg, of;
+                    of = a_s + b_s;
+                    REGISTER sum;
                     b = f->reg + s->reg;
-                    a = s->reg_half[0] + f->reg_half[0];
-                    if (a & 0X0100) // AF
-                        flagAF(1);
+                    sum.reg = (REG_SIZE)of;
+                    if ((a_s < 0 && b_s < 0 && of > 0) || (a_s > 0 && b_s > 0 && of < 0))
+                        flagOF(1); // OF
                     else
-                        flagAF(0);
+                        flagOF(0);
+                    if (of == 0)
+                        flagZF(1); // ZF
+                    else
+                        flagZF(0);
                     c = s->reg + f->reg;
                     if (c & 0X00010000) // CF
                         flagCF(1);
                     else
                         flagCF(0);
-                    if (((s->reg & 0X8000) == 0 && (f->reg & 0X8000) == 0 && (c & 0X00008000) == 0X00008000) || ((s->reg & 0X8000) == 1 && (f->reg & 0X8000) == 1 && (c & 0X00008000) == 0))
-                        flagOF(1);
+                    if (a & 0X0100) // AF
+                        flagAF(1);
                     else
-                        flagOF(0);
-                    if (s->reg) // ZF
-                        flagZF(0);
-                    else
-                        flagZF(1);
+                        flagAF(0);
                     int p = b >> 15;
                     flagSF(p); // SF
-                    s->reg = s->reg + f->reg;
-                    std::bitset<8> cc{s->reg_half[0]};
+                    std::bitset<8> cc{sum.reg_half[0]};
                     int sm = cc[0] + cc[1] + cc[2] + cc[3] + cc[4] + cc[5] + cc[6] + cc[7];
                     if (sm == 0 || sm == 2 || sm == 4 || sm == 6 || sm == 8)
-                        flagPF(1);
+                        flagPF(1); // PF
                     else
                         flagPF(0);
+                    s->reg = sum.reg;
                 }
                 else
                 {
                     REAL_ADDR_SIZE c = 0;
-                    REG_SIZE a = 0,b=0;
+                    REG_SIZE a = 0, b = 0;
+                    signed short a_s = (signed short)f->reg, b_s = (signed short)s->reg, of;
+                    of = a_s + b_s;
+                    REGISTER sum;
                     b = f->reg + s->reg;
-                    a = s->reg_half[0] + f->reg_half[0];
-                    if (a & 0X0100) // AF
-                        flagAF(1);
+                    sum.reg = (REG_SIZE)of;
+                    if ((a_s < 0 && b_s < 0 && of > 0) || (a_s > 0 && b_s > 0 && of < 0))
+                        flagOF(1); // OF
                     else
-                        flagAF(0);
+                        flagOF(0);
+                    if (of == 0)
+                        flagZF(1); // ZF
+                    else
+                        flagZF(0);
                     c = s->reg + f->reg;
                     if (c & 0X00010000) // CF
                         flagCF(1);
                     else
                         flagCF(0);
-                    if (((s->reg & 0X8000) == 0 && (f->reg & 0X8000) == 0 && (c & 0X00008000) == 0X00008000) || ((s->reg & 0X8000) == 1 && (f->reg & 0X8000) == 1 && (c & 0X00008000) == 0))
-                        flagOF(1);
+                    if (a & 0X0100) // AF
+                        flagAF(1);
                     else
-                        flagOF(0);
-                    if (s->reg) // ZF
-                        flagZF(0);
-                    else
-                        flagZF(1);
+                        flagAF(0);
                     int p = b >> 15;
                     flagSF(p); // SF
-                    f->reg = s->reg + f->reg;
-                    std::bitset<8> cc{s->reg_half[0]};
+                    std::bitset<8> cc{sum.reg_half[0]};
                     int sm = cc[0] + cc[1] + cc[2] + cc[3] + cc[4] + cc[5] + cc[6] + cc[7];
                     if (sm == 0 || sm == 2 || sm == 4 || sm == 6 || sm == 8)
-                        flagPF(1);
+                        flagPF(1); // PF
                     else
                         flagPF(0);
+                    f->reg = sum.reg;
                 }
+                return;
+            }
+            else
+            {
+                int h1, h2;
+                REGISTER *f, *s;
+                switch ((scnd & 0X38))
+                {
+                case 0b00000000:
+                    h1 = 0;
+                    f = &ax;
+                    break;
+
+                case 0b00001000:
+                    h1 = 0;
+                    f = &cx;
+                    break;
+
+                case 0b00010000:
+                    h1 = 0;
+                    f = &dx;
+                    break;
+
+                case 0b00011000:
+                    h1 = 0;
+                    f = &bx;
+                    break;
+
+                case 0b00100000:
+                    h1 = 1;
+                    f = &ax;
+                    break;
+
+                case 0b00101000:
+                    h1 = 1;
+                    f = &cx;
+                    break;
+
+                case 0b00110000:
+                    h1 = 1;
+                    f = &dx;
+                    break;
+
+                case 0b00111000:
+                    h1 = 1;
+                    f = &bx;
+                    break;
+                }
+                switch ((scnd & 0X07))
+                {
+                case 0b00000000:
+                    h2 = 0;
+                    s = &ax;
+                    break;
+
+                case 0b00000001:
+                    h2 = 0;
+                    s = &cx;
+                    break;
+
+                case 0b00000010:
+                    h2 = 0;
+                    s = &dx;
+                    break;
+
+                case 0b00000011:
+                    h2 = 0;
+                    s = &bx;
+                    break;
+
+                case 0b00000100:
+                    h2 = 1;
+                    s = &ax;
+                    break;
+
+                case 0b00000101:
+                    h2 = 1;
+                    s = &cx;
+                    break;
+
+                case 0b00000110:
+                    h2 = 1;
+                    s = &dx;
+                    break;
+
+                case 0b00000111:
+                    h2 = 1;
+                    s = &bx;
+                    break;
+                }
+                if ((com & 0X02) == 0X00)
+                {
+                    signed short a = 0;
+                    BYTE j;
+                    signed char d1, d2, d3, d4;
+                    d1 = (signed char)f->reg_half[h1];
+                    d2 = (signed char)s->reg_half[h2];
+                    d3 = d1 & 0X07;
+                    d4 = d2 & 0X07;
+                    a = d1 + d2;
+                    j = (BYTE)a;
+                    flagOF((int)(a >= 128 || a <= -127));
+                    flagCF((int)(a >= 128 || a <= -127));
+                    std::bitset<8> cc{j};
+                    int sm = cc[0] + cc[1] + cc[2] + cc[3] + cc[4] + cc[5] + cc[6] + cc[7];
+                    flagPF((int)(sm == 0 || sm == 2 || sm == 4 || sm == 6 || sm == 8));
+                    BYTE ms = d3 + d4;
+                    flagAF((int)((ms & 0X08) == 0X08));
+                    flagZF((int)(a == 0));
+                    if ((a & 0X0080) == 0X0080)
+                        flagSF(1);
+                    else
+                        flagSF(0);
+                    s->reg_half[h2] = j;
+                    return;
+                }
+                else
+                {
+                    signed short a = 0;
+                    BYTE j;
+                    signed char d1, d2, d3, d4;
+                    d1 = (signed char)f->reg_half[h1];
+                    d2 = (signed char)s->reg_half[h2];
+                    d3 = d1 & 0X07;
+                    d4 = d2 & 0X07;
+                    a = d1 + d2;
+                    j = (BYTE)a;
+                    flagOF((int)(a >= 128 || a <= -127));
+                    flagCF((int)(a >= 128 || a <= -127));
+                    std::bitset<8> cc{j};
+                    int sm = cc[0] + cc[1] + cc[2] + cc[3] + cc[4] + cc[5] + cc[6] + cc[7];
+                    flagPF((int)(sm == 0 || sm == 2 || sm == 4 || sm == 6 || sm == 8));
+                    BYTE ms = d3 + d4;
+                    flagAF((int)((ms & 0X08) == 0X08));
+                    flagZF((int)(a == 0));
+                    if ((a & 0X0080) == 0X0080)
+                        flagSF(1);
+                    else
+                        flagSF(0);
+                    f->reg_half[h2] = j;
+                    return;
+                }
+            }
+        }
+        else
+        {
+            REGISTER *reg;
+            REG_SIZE addr_sum;
+            switch ((scnd & 0XC7))
+            {
+            case 0b00000000:
+                addr_sum = bx.reg + si.reg;
+                ip.reg++;
+                break;
+
+            case 0b00000001:
+                addr_sum = bx.reg + di.reg;
+                ip.reg++;
+                break;
+
+            case 0b00000010:
+                addr_sum = bp.reg + si.reg;
+                ip.reg++;
+                break;
+
+            case 0b00000011:
+                addr_sum = bp.reg + di.reg;
+                ip.reg++;
+                break;
+
+            case 0b00000100:
+                addr_sum = si.reg;
+                ip.reg++;
+                break;
+
+            case 0b00000101:
+                addr_sum = di.reg;
+                ip.reg++;
+                break;
+
+            case 0b00000110:
+            {
+                REG_SIZE l = memory[real_addr + 3];
+                l = l << 8;
+
+                l = l | memory[real_addr + 2];
+                addr_sum = l;
+                ip.reg += 3;
+                break;
+            }
+
+            case 0b00000111:
+                addr_sum = bx.reg;
+                ip.reg++;
+                break;
+
+            case 0b01000000:
+                addr_sum = bx.reg + si.reg + memory[real_addr + 2];
+                ip.reg += 2;
+                break;
+
+            case 0b01000001:
+                addr_sum = bx.reg + di.reg + memory[real_addr + 2];
+                ip.reg += 2;
+                break;
+
+            case 0b01000010:
+                addr_sum = bp.reg + si.reg + memory[real_addr + 2];
+                ip.reg += 2;
+                break;
+
+            case 0b01000011:
+                addr_sum = bp.reg + di.reg + memory[real_addr + 2];
+                ip.reg += 2;
+                break;
+
+            case 0b01000100:
+                addr_sum = si.reg + memory[real_addr + 2];
+                ip.reg += 2;
+                break;
+
+            case 0b01000101:
+                addr_sum = di.reg + memory[real_addr + 2];
+                ip.reg += 2;
+                break;
+
+            case 0b01000110:
+                addr_sum = bp.reg + memory[real_addr + 2];
+                ip.reg += 2;
+                break;
+
+            case 0b01000111:
+                addr_sum = bx.reg + memory[real_addr + 2];
+                ip.reg += 2;
+                break;
+
+            case 0b10000000:
+            {
+                REG_SIZE l = 0;
+                l = memory[real_addr + 3];
+                l = l << 8;
+
+                l = l | memory[real_addr + 2];
+                addr_sum = bx.reg + si.reg + l;
+                ip.reg += 3;
+            }
+            break;
+
+            case 0b10000001:
+            {
+                REG_SIZE l = 0;
+                l = memory[real_addr + 3];
+                l = l << 8;
+
+                l = l | memory[real_addr + 2];
+                addr_sum = bx.reg + di.reg + l;
+                ip.reg += 3;
+            }
+            break;
+
+            case 0b10000010:
+            {
+                REG_SIZE l = 0;
+                l = memory[real_addr + 3];
+                l = l << 8;
+
+                l = l | memory[real_addr + 2];
+                addr_sum = bp.reg + si.reg + l;
+                ip.reg += 3;
+            }
+            break;
+
+            case 0b10000011:
+            {
+                REG_SIZE l = 0;
+                l = memory[real_addr + 3];
+                l = l << 8;
+
+                l = l | memory[real_addr + 2];
+                addr_sum = bp.reg + di.reg + l;
+                ip.reg += 3;
+            }
+            break;
+
+            case 0b10000100:
+            {
+                REG_SIZE l = 0;
+                l = memory[real_addr + 3];
+                l = l << 8;
+
+                l = l | memory[real_addr + 2];
+                addr_sum = si.reg + l;
+                ip.reg += 3;
+            }
+            break;
+
+            case 0b10000101:
+            {
+                REG_SIZE l = 0;
+                l = memory[real_addr + 3];
+                l = l << 8;
+
+                l = l | memory[real_addr + 2];
+                addr_sum = di.reg + l;
+                ip.reg += 3;
+            }
+            break;
+            case 0b10000110:
+            {
+                REG_SIZE l = 0;
+                l = memory[real_addr + 3];
+                l = l << 8;
+
+                l = l | memory[real_addr + 2];
+                addr_sum = bp.reg + l;
+                ip.reg += 3;
+            }
+            break;
+            case 0b10000111:
+            {
+                REG_SIZE l = 0;
+                l = memory[real_addr + 3];
+                l = l << 8;
+
+                l = l | memory[real_addr + 2];
+                addr_sum = bx.reg + l;
+                ip.reg += 3;
+            }
+            break;
+            default:
+                break;
+            }
+            if (w == 1)
+            {
+                switch ((scnd & 0X38))
+                {
+                case 0b00000000:
+                    reg = &ax;
+                    break;
+
+                case 0b00001000:
+                    reg = &cx;
+                    break;
+
+                case 0b00010000:
+                    reg = &dx;
+                    break;
+
+                case 0b00011000:
+                    reg = &bx;
+                    break;
+
+                case 0b00100000:
+                    reg = &sp;
+                    break;
+
+                case 0b00101000:
+                    reg = &bp;
+                    break;
+
+                case 0b00110000:
+                    reg = &si;
+                    break;
+
+                case 0b00111000:
+                    reg = &di;
+                    break;
+                }
+                if ((com & 0X02) == 0X02)
+                {
+                    REAL_ADDR_SIZE c = 0;
+                    REG_SIZE a = 0, b = 0;
+                    REGISTER m;
+                    m.reg_half[1] = memory[local_convert_cs_ip_to_real(ds, addr_sum) + 1];
+                    m.reg_half[0] = memory[local_convert_cs_ip_to_real(ds, addr_sum)];
+                    signed short a_s = (signed short)reg->reg, b_s = (signed short)m.reg, of;
+                    of = a_s + b_s;
+                    REGISTER sum;
+                    b = reg->reg + m.reg;
+                    sum.reg = (REG_SIZE)of;
+                    if ((a_s < 0 && b_s < 0 && of > 0) || (a_s > 0 && b_s > 0 && of < 0))
+                        flagOF(1); // OF
+                    else
+                        flagOF(0);
+                    if (of == 0)
+                        flagZF(1); // ZF
+                    else
+                        flagZF(0);
+                    c = reg->reg + m.reg;
+                    if (c & 0X00010000) // CF
+                        flagCF(1);
+                    else
+                        flagCF(0);
+                    if (a & 0X0100) // AF
+                        flagAF(1);
+                    else
+                        flagAF(0);
+                    int p = b >> 15;
+                    flagSF(p); // SF
+                    std::bitset<8> cc{sum.reg_half[0]};
+                    int sm = cc[0] + cc[1] + cc[2] + cc[3] + cc[4] + cc[5] + cc[6] + cc[7];
+                    if (sm == 0 || sm == 2 || sm == 4 || sm == 6 || sm == 8)
+                        flagPF(1); // PF
+                    else
+                        flagPF(0);
+                    reg->reg = sum.reg;
+                }
+                else
+                {
+                    REAL_ADDR_SIZE c = 0;
+                    REG_SIZE a = 0, b = 0;
+                    REGISTER m;
+                    m.reg_half[1] = memory[local_convert_cs_ip_to_real(ds, addr_sum) + 1];
+                    m.reg_half[0] = memory[local_convert_cs_ip_to_real(ds, addr_sum)];
+                    signed short a_s = (signed short)reg->reg, b_s = (signed short)m.reg, of;
+                    of = a_s + b_s;
+                    REGISTER sum;
+                    b = reg->reg + m.reg;
+                    sum.reg = (REG_SIZE)of;
+                    if ((a_s < 0 && b_s < 0 && of > 0) || (a_s > 0 && b_s > 0 && of < 0))
+                        flagOF(1); // OF
+                    else
+                        flagOF(0);
+                    if (of == 0)
+                        flagZF(1); // ZF+
+                    else
+                        flagZF(0);
+                    c = reg->reg + m.reg;
+                    if (c & 0X00010000) // CF
+                        flagCF(1);
+                    else
+                        flagCF(0);
+                    if (a & 0X0100) // AF
+                        flagAF(1);
+                    else
+                        flagAF(0);
+                    int p = b >> 15;
+                    flagSF(p); // SF
+                    std::bitset<8> cc{sum.reg_half[0]};
+                    int sm = cc[0] + cc[1] + cc[2] + cc[3] + cc[4] + cc[5] + cc[6] + cc[7];
+                    if (sm == 0 || sm == 2 || sm == 4 || sm == 6 || sm == 8)
+                        flagPF(1); // PF
+                    else
+                        flagPF(0);
+                    memory[local_convert_cs_ip_to_real(ds, addr_sum) + 1] = sum.reg_half[1];
+                    memory[local_convert_cs_ip_to_real(ds, addr_sum)] = sum.reg_half[0];
+                }
+            }
+            else
+            {
                 return;
             }
         }
@@ -3822,7 +4339,7 @@ void cp8086::add(BYTE com)
 
     if ((com & 0XFC) == 0X80) // reg/mem data
     {
-        
+
         int sw = com & 0X03;
         BYTE scnd = memory[real_addr + 1];
         if ((scnd & 0XC0) == 0XC0) // reg
@@ -3869,109 +4386,831 @@ void cp8086::add(BYTE com)
                 data.reg_half[0] = memory[real_addr + 2];
                 data.reg_half[1] = memory[real_addr + 3];
                 REAL_ADDR_SIZE c = 0;
-                REG_SIZE a = 0,b=0;
-                a = r->reg_half[0] + data.reg_half[0];
-                if (a & 0X0100) // AF
-                    flagAF(1);
+                REG_SIZE a = 0, b = 0;
+                signed short a_s = (signed short)r->reg, b_s = (signed short)data.reg, of;
+                of = a_s + b_s;
+                REGISTER sum;
+                b = r->reg + data.reg;
+                sum.reg = (REG_SIZE)of;
+                if ((a_s < 0 && b_s < 0 && of > 0) || (a_s > 0 && b_s > 0 && of < 0))
+                    flagOF(1); // OF
                 else
-                    flagAF(0);
+                    flagOF(0);
+                if (of == 0)
+                    flagZF(1); // ZF
+                else
+                    flagZF(0);
                 c = r->reg + data.reg;
                 if (c & 0X00010000) // CF
                     flagCF(1);
                 else
                     flagCF(0);
-                if (((r->reg & 0X8000) == 0 && (data.reg & 0X8000) == 0 && (c & 0X00008000) == 0X00008000) || ((r->reg & 0X8000) == 1 && (data.reg & 0X8000) == 1 && (c & 0X00008000) == 0))
-                    flagOF(1);
+                if (a & 0X0100) // AF
+                    flagAF(1);
                 else
-                    flagOF(0);
-                if (r->reg) // ZF
-                    flagZF(0);
-                else
-                    flagZF(1);
-                int p = r->reg_half[1] >> 7;
+                    flagAF(0);
+                int p = b >> 15;
                 flagSF(p); // SF
-                r->reg = r->reg + data.reg;
-                std::bitset<8> cc{data.reg_half[0]};
+                std::bitset<8> cc{sum.reg_half[0]};
                 int sm = cc[0] + cc[1] + cc[2] + cc[3] + cc[4] + cc[5] + cc[6] + cc[7];
                 if (sm == 0 || sm == 2 || sm == 4 || sm == 6 || sm == 8)
-                    flagPF(1);
+                    flagPF(1); // PF
                 else
                     flagPF(0);
+                r->reg = sum.reg;
                 return;
             }
             else
             {
                 ip.reg += 2;
                 REGISTER *r;
-                int h=0;
+                int h = 0;
                 switch ((scnd & 0X07))
                 {
                 case 0b00000000:
-                    h=0;
+                    h = 0;
                     r = &ax;
                     break;
 
                 case 0b00000001:
-                    h=0;
+                    h = 0;
                     r = &cx;
                     break;
 
                 case 0b00000010:
-                    h=0;
+                    h = 0;
                     r = &dx;
                     break;
 
                 case 0b00000011:
-                    h=0;
+                    h = 0;
                     r = &bx;
                     break;
 
                 case 0b00000100:
-                    h=1;
+                    h = 1;
                     r = &ax;
                     break;
 
                 case 0b00000101:
-                    h=1;
+                    h = 1;
                     r = &cx;
                     break;
 
                 case 0b00000110:
-                    h=1;
+                    h = 1;
                     r = &dx;
                     break;
 
                 case 0b00000111:
-                    h=1;
+                    h = 1;
                     r = &bx;
                     break;
                 }
                 BYTE data;
-                data=memory[real_addr+2];
+                data = memory[real_addr + 2];
                 signed short a = 0;
                 BYTE j;
-                signed char d1,d2,d3,d4;
-                d1=r->reg_half[h];
-                d2=data;
-                d3=d1&0X07;
-                d4=d2&0X07;
-                a=d1+d2;
-                j=(BYTE)a;
-                flagOF((int)(a>=128 || a<=-127));
-                flagCF((int)(a>=128 || a<=-127));
+                signed char d1, d2, d3, d4;
+                d1 = (signed char)r->reg_half[h];
+                d2 = (signed char)data;
+                d3 = d1 & 0X07;
+                d4 = d2 & 0X07;
+                a = d1 + d2;
+                j = (BYTE)a;
+                flagOF((int)(a >= 128 || a <= -127));
+                flagCF((int)(a >= 128 || a <= -127));
                 std::bitset<8> cc{j};
                 int sm = cc[0] + cc[1] + cc[2] + cc[3] + cc[4] + cc[5] + cc[6] + cc[7];
                 flagPF((int)(sm == 0 || sm == 2 || sm == 4 || sm == 6 || sm == 8));
-                BYTE ms = d3+d4;
-                flagAF((int)((ms&0X08)==0X08));
-                flagZF((int)(a==0));
-                if((a&0X0080)==0X0080)
+                BYTE ms = d3 + d4;
+                flagAF((int)((ms & 0X08) == 0X08));
+                flagZF((int)(a == 0));
+                if ((a & 0X0080) == 0X0080)
                     flagSF(1);
                 else
                     flagSF(0);
-                r->reg_half[h]=j;
+                r->reg_half[h] = j;
                 return;
             }
+        }
+    }
+}
+
+void cp8086::adc(BYTE com)
+{
+    if ((com & 0XFC) == 0X10) // reg mem, reg reg, mem reg
+    {
+        BYTE scnd = memory[real_addr + 1];
+        int w = com & 0X01;
+        int d = com & 0X02;
+        int cf = (flags & 0X0001) == 0X0001;
+        if ((scnd & 0XC0) == 0XC0) // reg reg
+        {
+            ip.reg++;
+            if (w == 1)
+            {
+                REGISTER *f, *s;
+                switch ((scnd & 0X38))
+                {
+                case 0b00000000:
+                    f = &ax;
+                    break;
+
+                case 0b00001000:
+                    f = &cx;
+                    break;
+
+                case 0b00010000:
+                    f = &dx;
+                    break;
+
+                case 0b00011000:
+                    f = &bx;
+                    break;
+
+                case 0b00100000:
+                    f = &sp;
+                    break;
+
+                case 0b00101000:
+                    f = &bp;
+                    break;
+
+                case 0b00110000:
+                    f = &si;
+                    break;
+
+                case 0b00111000:
+                    f = &di;
+                    break;
+                }
+                switch ((scnd & 0X07))
+                {
+                case 0b00000000:
+                    s = &ax;
+                    break;
+
+                case 0b00000001:
+                    s = &cx;
+                    break;
+
+                case 0b00000010:
+                    s = &dx;
+                    break;
+
+                case 0b00000011:
+                    s = &bx;
+                    break;
+
+                case 0b00000100:
+                    s = &sp;
+                    break;
+
+                case 0b00000101:
+                    s = &bp;
+                    break;
+
+                case 0b00000110:
+                    s = &si;
+                    break;
+
+                case 0b00000111:
+                    s = &di;
+                    break;
+                }
+                if ((com & 0X02) == 0X00)
+                {
+                    REAL_ADDR_SIZE c = 0;
+                    REG_SIZE a = 0, b = 0;
+                    signed short a_s = (signed short)f->reg, b_s = (signed short)s->reg, of;
+                    of = a_s + b_s + cf;
+                    REGISTER sum;
+                    b = f->reg + s->reg + cf;
+                    sum.reg = (REG_SIZE)of;
+                    if ((a_s < 0 && b_s < 0 && of > 0) || (a_s > 0 && b_s > 0 && of < 0))
+                        flagOF(1); // OF
+                    else
+                        flagOF(0);
+                    if (of == 0)
+                        flagZF(1); // ZF
+                    else
+                        flagZF(0);
+                    c = s->reg + f->reg + cf;
+                    if (c & 0X00010000) // CF
+                        flagCF(1);
+                    else
+                        flagCF(0);
+                    if (a & 0X0100) // AF
+                        flagAF(1);
+                    else
+                        flagAF(0);
+                    int p = b >> 15;
+                    flagSF(p); // SF
+                    std::bitset<8> cc{sum.reg_half[0]};
+                    int sm = cc[0] + cc[1] + cc[2] + cc[3] + cc[4] + cc[5] + cc[6] + cc[7];
+                    if (sm == 0 || sm == 2 || sm == 4 || sm == 6 || sm == 8)
+                        flagPF(1); // PF
+                    else
+                        flagPF(0);
+                    s->reg = sum.reg;
+                }
+                else
+                {
+                    REAL_ADDR_SIZE c = 0;
+                    REG_SIZE a = 0, b = 0;
+                    signed short a_s = (signed short)f->reg, b_s = (signed short)s->reg, of;
+                    of = a_s + b_s + cf;
+                    REGISTER sum;
+                    b = f->reg + s->reg + cf;
+                    sum.reg = (REG_SIZE)of;
+                    if ((a_s < 0 && b_s < 0 && of > 0) || (a_s > 0 && b_s > 0 && of < 0))
+                        flagOF(1); // OF
+                    else
+                        flagOF(0);
+                    if (of == 0)
+                        flagZF(1); // ZF
+                    else
+                        flagZF(0);
+                    c = s->reg + f->reg + cf;
+                    if (c & 0X00010000) // CF
+                        flagCF(1);
+                    else
+                        flagCF(0);
+                    if (a & 0X0100) // AF
+                        flagAF(1);
+                    else
+                        flagAF(0);
+                    int p = b >> 15;
+                    flagSF(p); // SF
+                    std::bitset<8> cc{sum.reg_half[0]};
+                    int sm = cc[0] + cc[1] + cc[2] + cc[3] + cc[4] + cc[5] + cc[6] + cc[7];
+                    if (sm == 0 || sm == 2 || sm == 4 || sm == 6 || sm == 8)
+                        flagPF(1); // PF
+                    else
+                        flagPF(0);
+                    f->reg = sum.reg;
+                }
+                return;
+            }
+            else
+            {
+                int h1, h2;
+                REGISTER *f, *s;
+                switch ((scnd & 0X38))
+                {
+                case 0b00000000:
+                    h1 = 0;
+                    f = &ax;
+                    break;
+
+                case 0b00001000:
+                    h1 = 0;
+                    f = &cx;
+                    break;
+
+                case 0b00010000:
+                    h1 = 0;
+                    f = &dx;
+                    break;
+
+                case 0b00011000:
+                    h1 = 0;
+                    f = &bx;
+                    break;
+
+                case 0b00100000:
+                    h1 = 1;
+                    f = &ax;
+                    break;
+
+                case 0b00101000:
+                    h1 = 1;
+                    f = &cx;
+                    break;
+
+                case 0b00110000:
+                    h1 = 1;
+                    f = &dx;
+                    break;
+
+                case 0b00111000:
+                    h1 = 1;
+                    f = &bx;
+                    break;
+                }
+                switch ((scnd & 0X07))
+                {
+                case 0b00000000:
+                    h2 = 0;
+                    s = &ax;
+                    break;
+
+                case 0b00000001:
+                    h2 = 0;
+                    s = &cx;
+                    break;
+
+                case 0b00000010:
+                    h2 = 0;
+                    s = &dx;
+                    break;
+
+                case 0b00000011:
+                    h2 = 0;
+                    s = &bx;
+                    break;
+
+                case 0b00000100:
+                    h2 = 1;
+                    s = &ax;
+                    break;
+
+                case 0b00000101:
+                    h2 = 1;
+                    s = &cx;
+                    break;
+
+                case 0b00000110:
+                    h2 = 1;
+                    s = &dx;
+                    break;
+
+                case 0b00000111:
+                    h2 = 1;
+                    s = &bx;
+                    break;
+                }
+                if ((com & 0X02) == 0X00)
+                {
+                    signed short a = 0;
+                    BYTE j;
+                    signed char d1, d2, d3, d4;
+                    d1 = (signed char)f->reg_half[h1];
+                    d2 = (signed char)s->reg_half[h2];
+                    d3 = d1 & 0X07;
+                    d4 = d2 & 0X07;
+                    a = d1 + d2 + cf;
+                    j = (BYTE)a;
+                    flagOF((int)(a >= 128 || a <= -127));
+                    flagCF((int)(a >= 128 || a <= -127));
+                    std::bitset<8> cc{j};
+                    int sm = cc[0] + cc[1] + cc[2] + cc[3] + cc[4] + cc[5] + cc[6] + cc[7];
+                    flagPF((int)(sm == 0 || sm == 2 || sm == 4 || sm == 6 || sm == 8));
+                    BYTE ms = d3 + d4 + cf;
+                    flagAF((int)((ms & 0X08) == 0X08));
+                    flagZF((int)(a == 0));
+                    if ((a & 0X0080) == 0X0080)
+                        flagSF(1);
+                    else
+                        flagSF(0);
+                    s->reg_half[h2] = j;
+                    return;
+                }
+                else
+                {
+                    signed short a = 0;
+                    BYTE j;
+                    signed char d1, d2, d3, d4;
+                    d1 = (signed char)f->reg_half[h1];
+                    d2 = (signed char)s->reg_half[h2];
+                    d3 = d1 & 0X07;
+                    d4 = d2 & 0X07;
+                    a = d1 + d2 + cf;
+                    j = (BYTE)a;
+                    flagOF((int)(a >= 128 || a <= -127));
+                    flagCF((int)(a >= 128 || a <= -127));
+                    std::bitset<8> cc{j};
+                    int sm = cc[0] + cc[1] + cc[2] + cc[3] + cc[4] + cc[5] + cc[6] + cc[7];
+                    flagPF((int)(sm == 0 || sm == 2 || sm == 4 || sm == 6 || sm == 8));
+                    BYTE ms = d3 + d4 + cf;
+                    flagAF((int)((ms & 0X08) == 0X08));
+                    flagZF((int)(a == 0));
+                    if ((a & 0X0080) == 0X0080)
+                        flagSF(1);
+                    else
+                        flagSF(0);
+                    f->reg_half[h2] = j;
+                    return;
+                }
+            }
+        }
+        else
+        {
+            REGISTER *reg;
+            REG_SIZE addr_sum;
+            switch ((scnd & 0XC7))
+            {
+            case 0b00000000:
+                addr_sum = bx.reg + si.reg;
+                ip.reg++;
+                break;
+
+            case 0b00000001:
+                addr_sum = bx.reg + di.reg;
+                ip.reg++;
+                break;
+
+            case 0b00000010:
+                addr_sum = bp.reg + si.reg;
+                ip.reg++;
+                break;
+
+            case 0b00000011:
+                addr_sum = bp.reg + di.reg;
+                ip.reg++;
+                break;
+
+            case 0b00000100:
+                addr_sum = si.reg;
+                ip.reg++;
+                break;
+
+            case 0b00000101:
+                addr_sum = di.reg;
+                ip.reg++;
+                break;
+
+            case 0b00000110:
+            {
+                REG_SIZE l = memory[real_addr + 3];
+                l = l << 8;
+
+                l = l | memory[real_addr + 2];
+                addr_sum = l;
+                ip.reg += 3;
+                break;
+            }
+
+            case 0b00000111:
+                addr_sum = bx.reg;
+                ip.reg++;
+                break;
+
+            case 0b01000000:
+                addr_sum = bx.reg + si.reg + memory[real_addr + 2];
+                ip.reg += 2;
+                break;
+
+            case 0b01000001:
+                addr_sum = bx.reg + di.reg + memory[real_addr + 2];
+                ip.reg += 2;
+                break;
+
+            case 0b01000010:
+                addr_sum = bp.reg + si.reg + memory[real_addr + 2];
+                ip.reg += 2;
+                break;
+
+            case 0b01000011:
+                addr_sum = bp.reg + di.reg + memory[real_addr + 2];
+                ip.reg += 2;
+                break;
+
+            case 0b01000100:
+                addr_sum = si.reg + memory[real_addr + 2];
+                ip.reg += 2;
+                break;
+
+            case 0b01000101:
+                addr_sum = di.reg + memory[real_addr + 2];
+                ip.reg += 2;
+                break;
+
+            case 0b01000110:
+                addr_sum = bp.reg + memory[real_addr + 2];
+                ip.reg += 2;
+                break;
+
+            case 0b01000111:
+                addr_sum = bx.reg + memory[real_addr + 2];
+                ip.reg += 2;
+                break;
+
+            case 0b10000000:
+            {
+                REG_SIZE l = 0;
+                l = memory[real_addr + 3];
+                l = l << 8;
+
+                l = l | memory[real_addr + 2];
+                addr_sum = bx.reg + si.reg + l;
+                ip.reg += 3;
+            }
+            break;
+
+            case 0b10000001:
+            {
+                REG_SIZE l = 0;
+                l = memory[real_addr + 3];
+                l = l << 8;
+
+                l = l | memory[real_addr + 2];
+                addr_sum = bx.reg + di.reg + l;
+                ip.reg += 3;
+            }
+            break;
+
+            case 0b10000010:
+            {
+                REG_SIZE l = 0;
+                l = memory[real_addr + 3];
+                l = l << 8;
+
+                l = l | memory[real_addr + 2];
+                addr_sum = bp.reg + si.reg + l;
+                ip.reg += 3;
+            }
+            break;
+
+            case 0b10000011:
+            {
+                REG_SIZE l = 0;
+                l = memory[real_addr + 3];
+                l = l << 8;
+
+                l = l | memory[real_addr + 2];
+                addr_sum = bp.reg + di.reg + l;
+                ip.reg += 3;
+            }
+            break;
+
+            case 0b10000100:
+            {
+                REG_SIZE l = 0;
+                l = memory[real_addr + 3];
+                l = l << 8;
+
+                l = l | memory[real_addr + 2];
+                addr_sum = si.reg + l;
+                ip.reg += 3;
+            }
+            break;
+
+            case 0b10000101:
+            {
+                REG_SIZE l = 0;
+                l = memory[real_addr + 3];
+                l = l << 8;
+
+                l = l | memory[real_addr + 2];
+                addr_sum = di.reg + l;
+                ip.reg += 3;
+            }
+            break;
+            case 0b10000110:
+            {
+                REG_SIZE l = 0;
+                l = memory[real_addr + 3];
+                l = l << 8;
+
+                l = l | memory[real_addr + 2];
+                addr_sum = bp.reg + l;
+                ip.reg += 3;
+            }
+            break;
+            case 0b10000111:
+            {
+                REG_SIZE l = 0;
+                l = memory[real_addr + 3];
+                l = l << 8;
+
+                l = l | memory[real_addr + 2];
+                addr_sum = bx.reg + l;
+                ip.reg += 3;
+            }
+            break;
+            default:
+                break;
+            }
+            if (w == 1)
+            {
+                switch ((scnd & 0X38))
+                {
+                case 0b00000000:
+                    reg = &ax;
+                    break;
+
+                case 0b00001000:
+                    reg = &cx;
+                    break;
+
+                case 0b00010000:
+                    reg = &dx;
+                    break;
+
+                case 0b00011000:
+                    reg = &bx;
+                    break;
+
+                case 0b00100000:
+                    reg = &sp;
+                    break;
+
+                case 0b00101000:
+                    reg = &bp;
+                    break;
+
+                case 0b00110000:
+                    reg = &si;
+                    break;
+
+                case 0b00111000:
+                    reg = &di;
+                    break;
+                }
+                if ((com & 0X02) == 0X02)
+                {
+                    REAL_ADDR_SIZE c = 0;
+                    REG_SIZE a = 0, b = 0;
+                    REGISTER m;
+                    m.reg_half[1] = memory[local_convert_cs_ip_to_real(ds, addr_sum) + 1];
+                    m.reg_half[0] = memory[local_convert_cs_ip_to_real(ds, addr_sum)];
+                    signed short a_s = (signed short)reg->reg, b_s = (signed short)m.reg, of;
+                    of = a_s + b_s + cf;
+                    REGISTER sum;
+                    b = reg->reg + m.reg + cf;
+                    sum.reg = (REG_SIZE)of;
+                    if ((a_s < 0 && b_s < 0 && of > 0) || (a_s > 0 && b_s > 0 && of < 0))
+                        flagOF(1); // OF
+                    else
+                        flagOF(0);
+                    if (of == 0)
+                        flagZF(1); // ZF
+                    else
+                        flagZF(0);
+                    c = reg->reg + m.reg + cf;
+                    if (c & 0X00010000) // CF
+                        flagCF(1);
+                    else
+                        flagCF(0);
+                    if (a & 0X0100) // AF
+                        flagAF(1);
+                    else
+                        flagAF(0);
+                    int p = b >> 15;
+                    flagSF(p); // SF
+                    std::bitset<8> cc{sum.reg_half[0]};
+                    int sm = cc[0] + cc[1] + cc[2] + cc[3] + cc[4] + cc[5] + cc[6] + cc[7];
+                    if (sm == 0 || sm == 2 || sm == 4 || sm == 6 || sm == 8)
+                        flagPF(1); // PF
+                    else
+                        flagPF(0);
+                    reg->reg = sum.reg;
+                }
+                else
+                {
+                    REAL_ADDR_SIZE c = 0;
+                    REG_SIZE a = 0, b = 0;
+                    REGISTER m;
+                    m.reg_half[1] = memory[local_convert_cs_ip_to_real(ds, addr_sum) + 1];
+                    m.reg_half[0] = memory[local_convert_cs_ip_to_real(ds, addr_sum)];
+                    signed short a_s = (signed short)reg->reg, b_s = (signed short)m.reg, of;
+                    of = a_s + b_s + cf;
+                    REGISTER sum;
+                    b = reg->reg + m.reg + cf;
+                    sum.reg = (REG_SIZE)of;
+                    if ((a_s < 0 && b_s < 0 && of > 0) || (a_s > 0 && b_s > 0 && of < 0))
+                        flagOF(1); // OF
+                    else
+                        flagOF(0);
+                    if (of == 0)
+                        flagZF(1); // ZF+
+                    else
+                        flagZF(0);
+                    c = reg->reg + m.reg + cf;
+                    if (c & 0X00010000) // CF
+                        flagCF(1);
+                    else
+                        flagCF(0);
+                    if (a & 0X0100) // AF
+                        flagAF(1);
+                    else
+                        flagAF(0);
+                    int p = b >> 15;
+                    flagSF(p); // SF
+                    std::bitset<8> cc{sum.reg_half[0]};
+                    int sm = cc[0] + cc[1] + cc[2] + cc[3] + cc[4] + cc[5] + cc[6] + cc[7];
+                    if (sm == 0 || sm == 2 || sm == 4 || sm == 6 || sm == 8)
+                        flagPF(1); // PF
+                    else
+                        flagPF(0);
+                    memory[local_convert_cs_ip_to_real(ds, addr_sum) + 1] = sum.reg_half[1];
+                    memory[local_convert_cs_ip_to_real(ds, addr_sum)] = sum.reg_half[0];
+                }
+            }
+            else
+            {
+                return;
+            }
+        }
+    }
+}
+
+void cp8086::mul(BYTE com)
+{
+    int w = (com & 0X0001);
+    BYTE scnd = memory[real_addr + 1];
+    if ((scnd & 0XC0) == 0XC0) // reg
+    {
+        ip.reg++;
+        if (w == 1)
+        {
+            REGISTER *reg;
+            switch ((scnd & 0X07))
+            {
+            case 0b00000000:
+                reg = &ax;
+                break;
+
+            case 0b00000001:
+                reg = &cx;
+                break;
+
+            case 0b00000010:
+                reg = &dx;
+                break;
+
+            case 0b00000011:
+                reg = &bx;
+                break;
+
+            case 0b00000100:
+                reg = &sp;
+                break;
+
+            case 0b00000101:
+                reg = &bp;
+                break;
+
+            case 0b00000110:
+                reg = &si;
+                break;
+
+            case 0b00000111:
+                reg = &di;
+                break;
+            }
+            REAL_ADDR_SIZE mux;
+            mux = ax.reg * reg->reg;
+            ax.reg = (mux & 0X0000FFFF);
+            dx.reg = ((mux >> 16) & 0X0000FFFF);
+            flagCF(dx.reg != 0);
+            flagOF(dx.reg != 0);
+        }
+    }
+}
+
+void cp8086::imul(BYTE com)
+{
+    int w = (com & 0X0001);
+    BYTE scnd = memory[real_addr + 1];
+    if ((scnd & 0XC0) == 0XC0) // reg
+    {
+        ip.reg++;
+        if (w == 1)
+        {
+            REGISTER *reg;
+            switch ((scnd & 0X07))
+            {
+            case 0b00000000:
+                reg = &ax;
+                break;
+
+            case 0b00000001:
+                reg = &cx;
+                break;
+
+            case 0b00000010:
+                reg = &dx;
+                break;
+
+            case 0b00000011:
+                reg = &bx;
+                break;
+
+            case 0b00000100:
+                reg = &sp;
+                break;
+
+            case 0b00000101:
+                reg = &bp;
+                break;
+
+            case 0b00000110:
+                reg = &si;
+                break;
+
+            case 0b00000111:
+                reg = &di;
+                break;
+            }
+            signed int mux;
+            mux = (signed short)ax.reg * (signed short)reg->reg;
+            ax.reg = (mux & 0X0000FFFF);
+            dx.reg = ((mux >> 16) & 0X0000FFFF);
+            flagCF(dx.reg != 0);
+            flagOF(dx.reg != 0);
         }
     }
 }
@@ -4061,18 +5300,18 @@ void cp8086::cmp(BYTE com)
                 {
                     REAL_ADDR_SIZE c = 0;
                     REG_SIZE a = 0, b = 0;
-                    signed short l1=s->reg,l2=f->reg,l=l1-l2;
+                    signed short l1 = s->reg, l2 = f->reg, l = l1 - l2;
                     b = s->reg - f->reg;
                     a = s->reg_half[0] - f->reg_half[0];
-                    if ((l1&0X0007)<(l2&0X0007)) // AF
+                    if ((l1 & 0X0007) < (l2 & 0X0007)) // AF
                         flagAF(1);
                     else
                         flagAF(0);
-                    if (l1<l2) // CF
+                    if (l1 < l2) // CF
                         flagCF(1);
                     else
                         flagCF(0);
-                    if ((l1>0 && l2>0 && l<0) || (l1>0 && l2>0 && l<0))
+                    if ((l1 > 0 && l2 > 0 && l < 0) || (l1 > 0 && l2 > 0 && l < 0))
                         flagOF(1);
                     else
                         flagOF(0);
@@ -4096,18 +5335,18 @@ void cp8086::cmp(BYTE com)
                 {
                     REAL_ADDR_SIZE c = 0;
                     REG_SIZE a = 0, b = 0;
-                    signed short l1=s->reg,l2=f->reg,l=l2-l1;
+                    signed short l1 = s->reg, l2 = f->reg, l = l2 - l1;
                     b = f->reg - s->reg;
                     a = f->reg_half[0] - s->reg_half[0];
-                    if ((l1&0X0007)>(l2&0X0007)) // AF
+                    if ((l1 & 0X0007) > (l2 & 0X0007)) // AF
                         flagAF(1);
                     else
                         flagAF(0);
-                    if (l1>l2) // CF
+                    if (l1 > l2) // CF
                         flagCF(1);
                     else
                         flagCF(0);
-                    if ((l1>0 && l2>0 && l<0) || (l1>0 && l2>0 && l<0))
+                    if ((l1 > 0 && l2 > 0 && l < 0) || (l1 > 0 && l2 > 0 && l < 0))
                         flagOF(1);
                     else
                         flagOF(0);
@@ -4134,41 +5373,68 @@ void cp8086::cmp(BYTE com)
 
 void cp8086::jmp(BYTE com)
 {
-    if(com==0b01111111) //JG
+    if (com == 0b01111111) // JG
     {
-        if((flags & 0X0020)==0X0000 && ((flags&0X0080)>>6)==((flags&0X0800)>>10))
+        if ((flags & 0X0020) == 0X0000 && ((flags & 0X0080) >> 6) == ((flags & 0X0800) >> 10))
         {
             printf("jmp completed\n");
-            signed char disp=memory[real_addr+1];
+            signed char disp = memory[real_addr + 1];
             ip.reg++;
-            ip.reg+=disp;
+            ip.reg += disp;
             return;
         }
         printf("jmp incompleted\n");
         ip.reg++;
         return;
     }
-    if(com==0b11100010) //loop
+    if (com == 0b11100010) // loop
     {
         cx.reg--;
-        if(cx.reg!=0)
+        if (cx.reg != 0)
         {
             printf("loop completed\n");
-            signed char disp=memory[real_addr+1];
+            signed char disp = memory[real_addr + 1];
             ip.reg++;
-            ip.reg+=disp;
+            ip.reg += disp;
             return;
         }
         printf("loop incompleted\n");
         ip.reg++;
         return;
     }
-    if(com==0b11101011) //jmp short
+    if (com == 0b11101011) // jmp short
     {
         printf("jmp completed\n");
-            signed char disp=memory[real_addr+1];
-            ip.reg++;
-            ip.reg+=disp;
+        signed char disp = memory[real_addr + 1];
+        ip.reg++;
+        ip.reg += disp;
+        return;
+    }
+}
+void cp8086::call(BYTE com)
+{
+    if(com==0XE8)
+    {
+        printf("jmp completed\n");
+            REGISTER disp;
+            disp.reg_half[1] = memory[real_addr + 2];
+            disp.reg_half[0] = memory[real_addr + 1];
+            ip.reg+=2;
+            sp.reg -= 2;
+            memory[local_convert_cs_ip_to_real(ss, sp) + 1] = ip.reg_half[1];
+            memory[local_convert_cs_ip_to_real(ss, sp)] = ip.reg_half[0];
+            ip.reg = (signed short)ip.reg+(signed short)disp.reg;
             return;
+    }
+}
+void cp8086::ret(BYTE com)
+{
+    if(com==0b11000011)
+    {
+        ip.reg_half[1] = memory[local_convert_cs_ip_to_real(ss, sp) + 1];
+        ip.reg_half[0] = memory[local_convert_cs_ip_to_real(ss, sp)];
+        ip.reg--;
+        sp.reg += 2;
+        return;
     }
 }

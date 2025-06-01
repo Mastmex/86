@@ -1,6 +1,7 @@
-#define REG_SIZE unsigned short
-#define BYTE unsigned char
-#define REAL_ADDR_SIZE unsigned int 
+#include <cstdint>
+#define REG_SIZE uint16_t
+#define BYTE uint8_t
+#define REAL_ADDR_SIZE uint_least32_t
 #include <string>
 
 union REGISTER
@@ -46,8 +47,13 @@ private:
     void pushf(BYTE com);
     void popf(BYTE com);
     void add(BYTE com);
+    void adc(BYTE com);
+    void mul(BYTE com);
+    void imul(BYTE com);
     void cmp(BYTE com);
     void jmp(BYTE com);
+    void call(BYTE com);
+    void ret(BYTE com);
 public:
     void init();
     int set_initial_addr(REAL_ADDR_SIZE initial_addr);
