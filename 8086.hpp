@@ -1,6 +1,7 @@
-#define REG_SIZE unsigned short
-#define BYTE unsigned char
-#define REAL_ADDR_SIZE unsigned int 
+#include <cstdint>
+#define REG_SIZE uint16_t
+#define BYTE uint8_t
+#define REAL_ADDR_SIZE uint_least32_t
 #include <string>
 
 union REGISTER
